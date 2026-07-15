@@ -6,7 +6,7 @@ A comprehensive, tutorial-style library on **Variational Autoencoders (VAE)** an
 
 ## Library Overview
 
-This library is organized into **4 parts**, progressing from foundations to advanced variational inference:
+This library is organized into **5 parts**, progressing from foundations to advanced variational inference:
 
 | Part | Topic | Content | Time |
 |------|-------|---------|------|
@@ -14,6 +14,7 @@ This library is organized into **4 parts**, progressing from foundations to adva
 | **Part 1** | Probability & Models | Distribution theory, MLE, Bayesian inference, mixture models, EM | 2-3 hours |
 | **Part 2** | Dynamics | Hidden Markov Models, Linear Dynamical Systems | 2 hours |
 | **Part 3** | Variational Inference | VAE, Variational EM, LFADS for neural dynamics | 2-3 hours |
+| **Part 4** | Advanced Methods | Gaussian Process Switching Linear Dynamics (gpSLDS) for multi-mode neural dynamics | 3-4 hours |
 
 ---
 
@@ -37,13 +38,24 @@ Variational-Neural-Inference/
 ├── Part2_Dynamics/
 │   └── 03_hmm_lds.ipynb
 │
-└── Part3_Variational/
-    ├── 04_standard_vae.ipynb
-    ├── 05_variational_em.ipynb
-    └── 06_lfads.ipynb
+├── Part3_Variational/
+│   ├── 04_standard_vae.ipynb
+│   ├── 05_variational_em.ipynb
+│   └── 06_lfads.ipynb
+│
+└── Part4_Advanced/
+    ├── 08_gpslds.ipynb
+    ├── gpslds_modules/
+    │   ├── kernels.py (GP kernels)
+    │   ├── likelihoods.py (observation models)
+    │   ├── inference.py (Kalman filter & smoother)
+    │   ├── em.py (learning algorithm)
+    │   └── utils.py (utilities)
+    └── data/
+        └── demo_data_*.pkl (synthetic datasets)
 ```
 
-**Total**: 7 notebooks, ~7.2 MB, fully self-contained
+**Total**: 8 notebooks + 5 Python modules, fully self-contained with synthetic data
 
 ---
 
