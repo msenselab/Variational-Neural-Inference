@@ -1,222 +1,167 @@
-# Variational Neural Inference: VAE and Latent Dynamical Systems
+# Variational Neural Inference
 
-A comprehensive, tutorial-style library on **Variational Autoencoders (VAE)** and **Latent Dynamical Systems** modeling for neural data analysis. Includes theory, mathematical derivations, and PyTorch implementations—designed for 1-2 hour group presentations or self-study.
+An executable tutorial on probabilistic modeling, variational inference, and
+latent dynamical systems for neural data. The nine notebooks form a progression
+from tensors and latent variables to sequential VAEs and interpretable nonlinear
+dynamics.
 
----
+## Course Map
 
-## Library Overview
+| Part | Notebook | Role | Recommended use |
+|---|---|---|---|
+| 0 | `00_pytorch_basics.ipynb` | Exercise-based PyTorch primer | Self-study and assignments |
+| 0 | `01_pytorch_neuroscience_introduction.ipynb` | Visual PyTorch introduction | Seminar prerequisite |
+| 1 | `02_probabilistic_modeling.ipynb` | Probability and latent-variable foundations | Core |
+| 2 | `03_hmm_lds.ipynb` | Gaussian HMM and AR-HMM extended workshop | Core sections plus optional application |
+| 3 | `04_standard_vae.ipynb` | Standard VAE and amortized inference | Core teaching anchor |
+| 3 | `05_variational_em.ipynb` | CAVI and variational EM | Core synthetic tutorial; optional Kato data |
+| 3 | `06_lfads.ipynb` | Transparent PyTorch LFADS | Main sequential VAE lesson |
+| 3 | `07_FULL_LFADS_Tutorial.ipynb` | Full JAX LFADS workflow | Advanced reference |
+| 4 | `08_gpslds.ipynb` | gpSLDS and interpretable nonlinear dynamics | Advanced conceptual capstone |
 
-This library is organized into **5 parts**, progressing from foundations to advanced variational inference:
+Each notebook begins with its role, expected runtime, hardware recommendation,
+data requirements, and validation scope.
 
-| Part | Topic | Content | Time |
-|------|-------|---------|------|
-| **Part 0** | Foundations | PyTorch basics, tensors, autograd | 15 min |
-| **Part 1** | Probability & Models | Distribution theory, MLE, Bayesian inference, mixture models, EM | 2-3 hours |
-| **Part 2** | Dynamics | Hidden Markov Models, Linear Dynamical Systems | 2 hours |
-| **Part 3** | Variational Inference | VAE, Variational EM, LFADS for neural dynamics | 2-3 hours |
-| **Part 4** | Advanced Methods | Gaussian Process Switching Linear Dynamics (gpSLDS) for multi-mode neural dynamics | 3-4 hours |
+## Conceptual Progression
 
----
-
-## Folder Structure
-
+```text
+probability
+    -> latent variables
+    -> temporal states
+    -> variational inference
+    -> recurrent neural dynamics
+    -> nonlinear but locally interpretable dynamics
 ```
+
+- Mixture models introduce hidden variables.
+- HMMs add temporal structure.
+- VAEs add amortized inference.
+- LFADS adds recurrent latent dynamics for spike trains.
+- gpSLDS adds uncertain nonlinear dynamics assembled from local linear regimes.
+
+## Recommended Seminar Narrative
+
+The clearest main presentation uses four notebooks:
+
+1. `02_probabilistic_modeling.ipynb`: why latent variables are useful.
+2. `04_standard_vae.ipynb`: the ELBO and amortized inference.
+3. `06_lfads.ipynb`: a temporal VAE for neural spike trains.
+4. `08_gpslds.ipynb`: interpretable nonlinear latent dynamics.
+
+Use notebooks 00 and 01 as prerequisites, notebook 03 for classical temporal
+models, notebook 05 for explicit coordinate-ascent inference, and notebook 07
+as an advanced LFADS reference.
+
+## Repository Layout
+
+```text
 Variational-Neural-Inference/
-│
-├── README.md (this file)
-├── references/
-│   ├── references.bib
-│   └── ATTRIBUTION.md
-│
-├── Part0_Foundations/
-│   └── 00_pytorch_basics.ipynb
-│
-├── Part1_Basics/
-│   ├── 01_probabilistic_modeling.ipynb
-│   └── 02_mixture_models.ipynb
-│
-├── Part2_Dynamics/
-│   └── 03_hmm_lds.ipynb
-│
-├── Part3_Variational/
-│   ├── 04_standard_vae.ipynb
-│   ├── 05_variational_em.ipynb
-│   └── 06_lfads.ipynb
-│
-└── Part4_Advanced/
-    ├── 08_gpslds.ipynb
-    ├── gpslds_modules/
-    │   ├── kernels.py (GP kernels)
-    │   ├── likelihoods.py (observation models)
-    │   ├── inference.py (Kalman filter & smoother)
-    │   ├── em.py (learning algorithm)
-    │   └── utils.py (utilities)
-    └── data/
-        └── demo_data_*.pkl (synthetic datasets)
+|-- README.md
+|-- requirements-core.txt
+|-- requirements-hmm-nwb.txt
+|-- requirements-jax.txt
+|-- external/
+|   |-- computation-thru-dynamics/  # Git submodule for notebook 07
+|   `-- gpslds/                      # Git submodule for notebook 08
+|-- references/
+`-- VAE-Tutorial/
+    |-- Part0_Foundations/
+    |   |-- 00_pytorch_basics.ipynb
+    |   `-- 01_pytorch_neuroscience_introduction.ipynb
+    |-- Part1_Basics/
+    |   `-- 02_probabilistic_modeling.ipynb
+    |-- Part2_Dynamics/
+    |   `-- 03_hmm_lds.ipynb
+    |-- Part3_Variational/
+    |   |-- 04_standard_vae.ipynb
+    |   |-- 05_variational_em.ipynb
+    |   |-- 06_lfads.ipynb
+    |   `-- 07_FULL_LFADS_Tutorial.ipynb
+    `-- Part4_Advanced/
+        |-- 08_gpslds.ipynb
+        `-- README.md
 ```
 
-**Total**: 8 notebooks + 5 Python modules, fully self-contained with synthetic data
+## Installation
 
----
-
-## Getting Started
-
-### Installation
+Clone the external implementations together with the main repository:
 
 ```bash
-pip install torch numpy scipy matplotlib scikit-learn jupyter seaborn
-```
-
-### Recommended Learning Path
-
-**For 1-2 hour group presentation:**
-1. Part 0: Quick PyTorch intro (10 min)
-2. Theory lecture with slides (15 min)
-3. Live demo: `04_standard_vae.ipynb` (45 min)
-4. Live demo: `06_lfads.ipynb` (45 min)
-
-**For self-study (12-15 hours total):**
-1. Part 0: `00_pytorch_basics.ipynb` (1 hour)
-2. Part 1: Notebooks 1-2 (3-4 hours)
-3. Part 2: `03_hmm_lds.ipynb` (2 hours)
-4. Part 3: Notebooks 4-6 (5-6 hours)
-
----
-
-## Key Concepts
-
-### What's Covered
-
-- **Probabilistic Modeling**: Distributions, likelihood, Bayesian inference
-- **Maximum Likelihood Estimation**: Theory and applications
-- **Conjugate Priors**: Gamma-Poisson example
-- **Mixture Models**: Clustering and latent variables
-- **Expectation-Maximization**: Algorithm for hidden variable models
-- **Variational Inference**: ELBO, mean-field approximation
-- **Variational Autoencoders**: Encoder-decoder architecture, reparameterization trick
-- **Latent Dynamical Systems**: Modeling neural population dynamics
-- **LFADS**: Sequential VAE for discovering latent factors in neural data
-
-### Notebook Contents
-
-| Notebook | Focus | Key Topics |
-|----------|-------|-----------|
-| `00_pytorch_basics` | Setup | Tensors, broadcasting, autograd |
-| `01_probabilistic_modeling` | Foundations | Poisson, MLE, Bayesian, conjugate priors, MAP |
-| `02_mixture_models` | Clustering | Gaussian mixtures, EM algorithm |
-| `03_hmm_lds` | Sequences | Hidden Markov Models, Linear Dynamical Systems |
-| `04_standard_vae` | Generative | Encoder/decoder, ELBO loss, training |
-| `05_variational_em` | Theory | Variational inference, posterior approximation |
-| `06_lfads` | Applications | Sequential VAE, neural dynamics discovery |
-
----
-
-## Source & Attribution
-
-This library is **adapted from Stanford STATS 320: Machine Learning Methods for Neural Data Analysis**.
-
-- **Official Course**: https://slinderman.github.io/ml4nd/
-- **Instructor**: Scott Linderman
-- **Institution**: Stanford University, Department of Statistics
-
-### What We Did
-
-✅ Adapted Stanford course materials for VAE and latent dynamics  
-✅ Converted to fully English notebooks  
-✅ Complete implementations with working code  
-✅ Tutorial-style organization for teaching  
-✅ Focused scope (VAE + dynamics, not full course)
-
-See `references/ATTRIBUTION.md` for detailed credits.
-
----
-
-## Key Papers
-
-- **LFADS**: Pandarinath et al. (2018). "Inferring single-trial neural population dynamics using sequential autoencoders." *Nature Methods*.
-- **VAE**: Kingma & Welling (2013). "Auto-Encoding Variational Bayes." *arXiv preprint*.
-- **EM**: Dempster, Laird, Rubin (1977). "Maximum likelihood from incomplete data via the EM algorithm."
-- **Neural Dynamics**: Vyas et al. (2020). "Computation through neural population dynamics." *Annual Review of Neuroscience*.
-
-See `references/references.bib` for complete bibliography.
-
----
-
-## Requirements
-
-- **Python**: 3.8+
-- **Core Libraries**: PyTorch, NumPy, SciPy, Matplotlib
-- **Optional**: scikit-learn, seaborn
-- **Environment**: Jupyter Notebook
-
----
-
-## How to Use
-
-### Option 1: Local Jupyter
-
-```bash
+git clone --recurse-submodules <repository-url>
 cd Variational-Neural-Inference
-jupyter notebook
-# Open any Part X folder and start with Part 0
 ```
 
-### Option 2: Group Presentation
+For an existing clone:
 
-1. Open notebooks in presentation mode
-2. Run cells live during presentation
-3. Use slides for theory (not included; create your own or use notebook markdown)
-
-### Option 3: Self-Study
-
-Follow the recommended learning path above.
-
----
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| PyTorch not found | `pip install torch` |
-| Notebook won't load | Ensure Jupyter is installed: `pip install jupyter` |
-| Graphics not showing | `%matplotlib inline` should be automatic |
-| Missing data errors | Some notebooks download data on first run (needs internet) |
-
----
-
-## What's NOT Included
-
-- **Part 4 (Applications)**: Real neural data case studies (future work)
-- **Presentation slides**: Create using your favorite tool
-- **Exercises solutions**: You should work through these!
-- **Complete course content**: Focus on VAE + dynamics only
-
----
-
-## Citation
-
-If you use this library in your work, please cite:
-
-```bibtex
-@online{linderman_stats320,
-  title={Machine Learning Methods for Neural Data Analysis},
-  author={Linderman, Scott},
-  year={2024},
-  url={https://slinderman.github.io/ml4nd/},
-  school={Stanford University}
-}
+```bash
+git submodule update --init --recursive
+python scripts/apply_external_patches.py
 ```
 
----
+The patch command is idempotent. It applies the small modern-JAX and NumPy 2
+compatibility adjustments used by notebooks 07 and 08, and reports when they
+are already present.
 
-## Questions?
+Use a dedicated environment for each dependency tier.
 
-- **About Stanford materials**: See https://slinderman.github.io/ml4nd/
-- **About specific notebooks**: Review the markdown sections in each notebook
-- **About LFADS**: Check the original paper (Pandarinath et al., 2018)
+### Core PyTorch notebooks
 
----
+```bash
+python -m pip install -r requirements-core.txt
+```
 
-**Last Updated**: 2026-07-15  
-**Status**: ✅ Complete and ready for teaching  
-**Next Step**: Start with Part 0, run a notebook, and dive in!
+### HMM, NWB, and video workshop
+
+```bash
+python -m pip install -r requirements-hmm-nwb.txt
+```
+
+### JAX LFADS and gpSLDS notebooks
+
+```bash
+python -m pip install -r requirements-jax.txt
+```
+
+GPU-enabled JAX and PyTorch installations depend on the local CUDA version;
+follow the official framework installation instructions when GPU acceleration
+is required.
+
+## Reproducibility Boundaries
+
+- Notebook 05 runs its complete synthetic CAVI and variational EM tutorial
+  without the Kato dataset. The real-data section is opt-in.
+- Notebook 06 splits trials before creating loaders: 950 training trials and 50
+  genuinely held-out test trials.
+- Notebook 03 is an extended workshop. The MoSeq/NWB and crowd-movie sections
+  are optional and require a large download.
+- Notebook 07 is a dependency-heavy reference implementation rather than the
+  default live demonstration.
+- Notebook 08 is a teaching demonstration of the gpSLDS computational core,
+  not a replacement for the full upstream variational EM fitting pipeline.
+
+## Model Comparison
+
+| Model | Latent representation | Temporal dynamics | Observation model | Inference | Main interpretation |
+|---|---|---|---|---|---|
+| HMM | Discrete state | Markov transitions | Gaussian or autoregressive | Forward-backward and EM | Recurring behavioral regimes |
+| VAE | Continuous latent | Independent observations | Neural decoder | Amortized variational inference | Nonlinear low-dimensional structure |
+| LFADS | Continuous generator state and inferred inputs | Recurrent neural network | Poisson spikes | Sequential amortized inference | Trial-specific neural dynamics |
+| gpSLDS | Continuous latent state with local regimes | GP-SDE vector field | Gaussian or Poisson | Variational GP inference | Smooth, uncertain, locally linear dynamics |
+
+## Sources and Attribution
+
+The tutorial adapts material from Stanford STATS 320 and the original model
+implementations. See `references/ATTRIBUTION.md` for detailed attribution.
+
+- STATS 320 course: <https://slinderman.github.io/ml4nd/>
+- LFADS paper: Pandarinath et al. (2018), *Nature Methods*.
+- VAE paper: Kingma and Welling (2013), *Auto-Encoding Variational Bayes*.
+- gpSLDS paper: Hu et al. (2024), *NeurIPS*.
+- Computation through dynamics: Vyas et al. (2020), *Annual Review of Neuroscience*.
+
+## Current Status
+
+The tutorial is organized as a public-facing release candidate. The compact
+core notebooks and capstone have executable workflows; dependency-heavy and
+external-data sections are explicitly marked as advanced or optional rather
+than being implied prerequisites.

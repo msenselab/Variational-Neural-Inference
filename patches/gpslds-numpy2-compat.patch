@@ -1,0 +1,83 @@
+diff --git a/gpslds/kernels.py b/gpslds/kernels.py
+index 28f0b54..9f71872 100644
+--- a/gpslds/kernels.py
++++ b/gpslds/kernels.py
+@@ -3,11 +3,30 @@ jax.config.update("jax_enable_x64", True)
+ 
+ import jax.numpy as jnp
+ from jax import lax, jit, grad, vmap
+-import tensorflow_probability.substrates.jax as tfp
+-tfb = tfp.bijectors
++from jax.nn import softmax
+ from functools import partial
+ from gpslds.utils import gaussian_int
+ 
++
++def _softmax_centered(logits):
++    """Pure-JAX equivalent of TFP's SoftmaxCentered bijector."""
++    centered_logits = jnp.concatenate((logits, jnp.zeros((1,), dtype=logits.dtype)))
++    return softmax(centered_logits)
++
++
++def _multivariate_normal_prob(value, mean, covariance):
++    """Evaluate a full-covariance Gaussian density with stable Cholesky solves."""
++    dimension = mean.shape[0]
++    chol = jnp.linalg.cholesky(covariance)
++    whitened = jnp.linalg.solve(chol, value - mean)
++    log_det = 2.0 * jnp.log(jnp.diag(chol)).sum()
++    log_prob = -0.5 * (
++        dimension * jnp.log(2.0 * jnp.pi)
++        + log_det
++        + jnp.dot(whitened, whitened)
++    )
++    return jnp.exp(log_prob)
++
+ class Kernel:
+     def __init__(self, quadrature): 
+         self.quadrature = quadrature
+@@ -57,7 +76,9 @@ class RBF(Kernel):
+ 
+     def E_Kxz_closed(self, z, m, S, kernel_params):
+         K = len(m)
+-        integral = tfd.MultivariateNormalFullCovariance(m, S + jnp.diag(kernel_params["length_scales"]**2)).prob(z)
++        integral = _multivariate_normal_prob(
++            z, m, S + jnp.diag(kernel_params["length_scales"]**2)
++        )
+         const = kernel_params["output_scale"]**2 * jnp.sqrt((2 * jnp.pi)**K) * kernel_params["length_scales"].prod()
+         return const * integral
+ 
+@@ -70,8 +91,10 @@ class RBF(Kernel):
+         new_cov = jnp.linalg.solve(S_inv + L_inv, jnp.eye(K)) + jnp.diag(kernel_params["length_scales"]**2)
+ 
+         const = kernel_params["output_scale"]**4 * (2 * jnp.pi)**K * (kernel_params["length_scales"]**2).prod()
+-        prob1 = tfd.MultivariateNormalFullCovariance(m, S + jnp.diag(kernel_params["length_scales"]**2)).prob(z2)
+-        prob2 = tfd.MultivariateNormalFullCovariance(new_mean, new_cov).prob(z1)
++        prob1 = _multivariate_normal_prob(
++            z2, m, S + jnp.diag(kernel_params["length_scales"]**2)
++        )
++        prob2 = _multivariate_normal_prob(z1, new_mean, new_cov)
+ 
+         return const * prob1 * prob2 
+ 
+@@ -130,7 +153,7 @@ class SSL(Kernel):
+     def construct_partition(self, x, W, log_tau):
+         """Construct partition function pi at a given latent space location x."""
+         activations = W.T @ self.basis_set(x)
+-        pi = tfb.SoftmaxCentered().forward(activations / jnp.exp(log_tau))
++        pi = _softmax_centered(activations / jnp.exp(log_tau))
+         return pi
+ 
+     def K(self, x1, x2, kernel_params):
+diff --git a/gpslds/utils.py b/gpslds/utils.py
+index 89cdcde..a602e9e 100644
+--- a/gpslds/utils.py
++++ b/gpslds/utils.py
+@@ -4,8 +4,6 @@ jax.config.update("jax_enable_x64", True)
+ import jax.numpy as jnp
+ import jax.random as jr
+ import matplotlib.pyplot as plt
+-import tensorflow_probability.substrates.jax as tfp
+-tfd = tfp.distributions
+ 
+ from jax import lax, jit, grad, vmap
+ from functools import partial

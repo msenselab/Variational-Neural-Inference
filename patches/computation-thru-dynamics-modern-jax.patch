@@ -1,0 +1,70 @@
+diff --git a/lfads_tutorial/lfads.py b/lfads_tutorial/lfads.py
+index f7c27f8..60b3962 100644
+--- a/lfads_tutorial/lfads.py
++++ b/lfads_tutorial/lfads.py
+@@ -21,7 +21,7 @@ from functools import partial
+ 
+ import jax.numpy as np
+ from jax import jit, lax, random, vmap
+-from jax.experimental import optimizers
++from jax.example_libraries import optimizers
+ 
+ import lfads_tutorial.distributions as dists
+ import lfads_tutorial.utils as utils
+diff --git a/lfads_tutorial/optimize.py b/lfads_tutorial/optimize.py
+index e7ea744..7d1b221 100644
+--- a/lfads_tutorial/optimize.py
++++ b/lfads_tutorial/optimize.py
+@@ -23,7 +23,7 @@ import h5py
+ 
+ import jax.numpy as np
+ from jax import grad, jit, lax, random
+-from jax.experimental import optimizers
++from jax.example_libraries import optimizers
+ 
+ import matplotlib.pyplot as plt
+ import numpy as onp  # original CPU-backed NumPy
+diff --git a/lfads_tutorial/plotting.py b/lfads_tutorial/plotting.py
+index cfad902..e6c9364 100644
+--- a/lfads_tutorial/plotting.py
++++ b/lfads_tutorial/plotting.py
+@@ -32,7 +32,7 @@ def plot_data_pca(data_dict):
+   print('Number of data examples: ', ndata)
+   print('Number of timesteps: ', ntime)
+   print('Number of data dimensions: ', nhidden)
+-  pca = PCA(n_components=100)
++  pca = PCA(n_components=min(100, ndata * ntime, nhidden))
+   pca.fit(onp.reshape(data_dict['hiddens'], [ndata * ntime, nhidden]))
+ 
+   plt.plot(onp.arange(1, 16), onp.cumsum(pca.explained_variance_ratio_)[0:15],
+diff --git a/lfads_tutorial/utils.py b/lfads_tutorial/utils.py
+index 789ad01..627f581 100644
+--- a/lfads_tutorial/utils.py
++++ b/lfads_tutorial/utils.py
+@@ -24,6 +24,17 @@ import os
+ MAX_SEED_INT = 10000000
+ 
+ 
++class HParams(dict):
++  """Hashable hyperparameter mapping for modern JAX static arguments.
++
++  Treat instances as immutable after construction. JIT cache keys depend on
++  the values remaining unchanged.
++  """
++
++  def __hash__(self):
++    return hash(tuple(sorted(self.items())))
++
++
+ def split_data(data_b, train_fraction):
+   """Split the data into training and evaluation sets.
+ 
+@@ -57,7 +68,7 @@ def spikify_data(data_bxtxn, rng, dt=1.0, max_firing_rate=100):
+   spikes_e = []
+   B, T, N = data_bxtxn.shape
+   for data_txn in data_bxtxn:
+-    spikes = onp.zeros([T,N]).astype(onp.int)
++    spikes = onp.zeros([T,N]).astype(int)
+     for n in range(N):
+       f = data_txn[:,n]
+       s = rng.poisson(f*max_firing_rate*dt, size=T)

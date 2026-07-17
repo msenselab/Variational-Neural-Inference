@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Optional datasets downloaded by notebooks.
+VAE-Tutorial/Part2_Dynamics/data/moseq/
+VAE-Tutorial/Part3_Variational/data/kato2015/
+
+# Notebook execution scratch files.
+.codex_*.py
+.codex_*.png

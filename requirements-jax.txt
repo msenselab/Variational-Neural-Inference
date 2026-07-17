@@ -1,0 +1,8 @@
+-r requirements-core.txt
+
+# NumPy 1.x keeps the original gpSLDS TensorFlow Probability stack compatible.
+numpy>=1.26,<2
+jax>=0.4.30,<0.5
+optax>=0.2.3
+tensorflow-probability==0.25.0
+h5py>=3.10

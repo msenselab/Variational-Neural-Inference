@@ -1,0 +1,6 @@
+[submodule "external/computation-thru-dynamics"]
+	path = external/computation-thru-dynamics
+	url = https://github.com/google-research/computation-thru-dynamics.git
+[submodule "external/gpslds"]
+	path = external/gpslds
+	url = https://github.com/lindermanlab/gpslds.git
