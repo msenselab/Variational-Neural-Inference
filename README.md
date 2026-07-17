@@ -84,34 +84,40 @@ Variational-Neural-Inference/
 
 ## Installation
 
-### Required setup for a fresh clone
+### One-command setup for a fresh clone
 
 Downloading individual notebooks is not sufficient for notebooks 07 and 08.
-They use external implementations registered as Git submodules. Run all three
-commands from a terminal:
+They use external implementations registered as Git submodules. Clone the
+repository, enter it, and run the setup command:
 
 ```bash
-git clone --recurse-submodules https://github.com/msenselab/Variational-Neural-Inference.git
+git clone https://github.com/msenselab/Variational-Neural-Inference.git
 cd Variational-Neural-Inference
-python scripts/apply_external_patches.py
+python scripts/setup_all.py
 ```
 
-The final command applies the modern-JAX and NumPy compatibility adjustments
-used by the LFADS and gpSLDS notebooks. It is idempotent: running it again is
-safe and reports that the patches are already applied.
+`setup_all.py` performs all required installation steps:
 
-For a clone created without `--recurse-submodules`, repair it with:
+1. initializes both Git submodules;
+2. applies the modern-JAX and NumPy compatibility patches;
+3. upgrades `pip`;
+4. installs the complete CPU-compatible environment for notebooks 00-08.
 
-```bash
-git submodule update --init --recursive
-python scripts/apply_external_patches.py
-```
+The command is idempotent and can be run again safely. Preview its actions
+without changing the environment with `python scripts/setup_all.py --dry-run`.
 
 The local Git settings used by a contributor to hide patched submodule files
 are not transferred to other computers. The tracked patch files and the script
-above are the reproducible source of those compatibility changes.
+are the reproducible source of those compatibility changes.
 
-Use a dedicated environment for each dependency tier.
+The all-in-one command installs CPU JAX because CUDA builds depend on the local
+driver and CUDA version. GPU users should install the matching JAX build from
+the official JAX installation guide after setup.
+
+### Smaller installations
+
+Use a dedicated environment and one of the following files when the complete
+environment is not needed.
 
 ### Core PyTorch notebooks
 
