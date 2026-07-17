@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.claude/
 
 # Optional datasets downloaded by notebooks.
 VAE-Tutorial/Part2_Dynamics/data/moseq/
