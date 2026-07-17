@@ -10,3 +10,5 @@ VAE-Tutorial/Part3_Variational/data/kato2015/
 # Notebook execution scratch files.
 .codex_*.py
 .codex_*.png
+presentation/assets/
+presentation/rendered/
