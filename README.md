@@ -1,7 +1,7 @@
 # Variational Neural Inference
 
 An executable tutorial on probabilistic modeling, variational inference, and
-latent dynamical systems for neural data. The nine notebooks form a progression
+latent dynamical systems for neural data. The eleven notebooks form a progression
 from tensors and latent variables to sequential VAEs and interpretable nonlinear
 dynamics.
 
@@ -12,7 +12,9 @@ dynamics.
 | 0 | `00_pytorch_basics.ipynb` | Exercise-based PyTorch primer | Self-study and assignments |
 | 0 | `01_pytorch_neuroscience_introduction.ipynb` | Visual PyTorch introduction | Seminar prerequisite |
 | 1 | `02_probabilistic_modeling.ipynb` | Probability and latent-variable foundations | Core |
-| 2 | `03_hmm_lds.ipynb` | Gaussian HMM and AR-HMM extended workshop | Core sections plus optional application |
+| 1 | `02b_mixtures_em.ipynb` | Mixture models, EM, the ELBO, and stochastic EM | Core bridge |
+| 2 | `03a_hmm_foundations.ipynb` | HMM inference, decoding, sampling, and Baum-Welch EM | Core |
+| 2 | `03_hmm_lds.ipynb` | Gaussian and AR-HMM extended workshop | Advanced plus optional application |
 | 3 | `04_standard_vae.ipynb` | Standard VAE and amortized inference | Core teaching anchor |
 | 3 | `05_variational_em.ipynb` | CAVI and variational EM | Core synthetic tutorial; optional Kato data |
 | 3 | `06_lfads.ipynb` | Transparent PyTorch LFADS | Main sequential VAE lesson |
@@ -27,7 +29,8 @@ data requirements, and validation scope.
 ```text
 probability
     -> latent variables
-    -> temporal states
+    -> mixture models and EM
+    -> temporal states and dynamic programming
     -> variational inference
     -> recurrent neural dynamics
     -> nonlinear but locally interpretable dynamics
@@ -48,9 +51,10 @@ The clearest main presentation uses four notebooks:
 3. `06_lfads.ipynb`: a temporal VAE for neural spike trains.
 4. `08_gpslds.ipynb`: interpretable nonlinear latent dynamics.
 
-Use notebooks 00 and 01 as prerequisites, notebook 03 for classical temporal
-models, notebook 05 for explicit coordinate-ascent inference, and notebook 07
-as an advanced LFADS reference.
+Use notebooks 00 and 01 as prerequisites. The complete classical inference
+track is `02 -> 02b -> 03a`; notebook 03 extends it to AR-HMMs and optional
+neural/behavioral data. Use notebook 05 for explicit coordinate-ascent
+inference and notebook 07 as an advanced LFADS reference.
 
 ## Repository Layout
 
@@ -70,8 +74,10 @@ Variational-Neural-Inference/
     |   |-- 00_pytorch_basics.ipynb
     |   `-- 01_pytorch_neuroscience_introduction.ipynb
     |-- Part1_Basics/
-    |   `-- 02_probabilistic_modeling.ipynb
+    |   |-- 02_probabilistic_modeling.ipynb
+    |   `-- 02b_mixtures_em.ipynb
     |-- Part2_Dynamics/
+    |   |-- 03a_hmm_foundations.ipynb
     |   `-- 03_hmm_lds.ipynb
     |-- Part3_Variational/
     |   |-- 04_standard_vae.ipynb
@@ -164,7 +170,8 @@ enabled. The default synthetic workflow does not require external data.
   without the Kato dataset. The real-data section is opt-in.
 - Notebook 06 splits trials before creating loaders: 950 training trials and 50
   genuinely held-out test trials.
-- Notebook 03 is an extended workshop. The MoSeq/NWB and crowd-movie sections
+- Notebook 03a is the self-contained HMM core. Notebook 03 is an extended
+  workshop; its MoSeq/NWB and crowd-movie sections
   are optional and require a large download.
 - Notebook 07 is a dependency-heavy reference implementation rather than the
   default live demonstration.
