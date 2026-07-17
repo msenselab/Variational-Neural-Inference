@@ -84,23 +84,32 @@ Variational-Neural-Inference/
 
 ## Installation
 
-Clone the external implementations together with the main repository:
+### Required setup for a fresh clone
+
+Downloading individual notebooks is not sufficient for notebooks 07 and 08.
+They use external implementations registered as Git submodules. Run all three
+commands from a terminal:
 
 ```bash
-git clone --recurse-submodules <repository-url>
+git clone --recurse-submodules https://github.com/msenselab/Variational-Neural-Inference.git
 cd Variational-Neural-Inference
+python scripts/apply_external_patches.py
 ```
 
-For an existing clone:
+The final command applies the modern-JAX and NumPy compatibility adjustments
+used by the LFADS and gpSLDS notebooks. It is idempotent: running it again is
+safe and reports that the patches are already applied.
+
+For a clone created without `--recurse-submodules`, repair it with:
 
 ```bash
 git submodule update --init --recursive
 python scripts/apply_external_patches.py
 ```
 
-The patch command is idempotent. It applies the small modern-JAX and NumPy 2
-compatibility adjustments used by notebooks 07 and 08, and reports when they
-are already present.
+The local Git settings used by a contributor to hide patched submodule files
+are not transferred to other computers. The tracked patch files and the script
+above are the reproducible source of those compatibility changes.
 
 Use a dedicated environment for each dependency tier.
 
@@ -125,6 +134,17 @@ python -m pip install -r requirements-jax.txt
 GPU-enabled JAX and PyTorch installations depend on the local CUDA version;
 follow the official framework installation instructions when GPU acceleration
 is required.
+
+### Which environment should I install?
+
+| Notebooks | Requirements | Hardware and data notes |
+|---|---|---|
+| 00-06 | `requirements-core.txt` | CPU supported; CUDA recommended for notebook 06 |
+| 03 optional NWB/video route | `requirements-hmm-nwb.txt` | Downloads an approximately 578 MB archive |
+| 07-08 | `requirements-jax.txt` | GPU recommended for full LFADS; notebook 08 teaching demo runs on CPU |
+
+Notebook 05 downloads the Kato dataset only when its optional real-data flag is
+enabled. The default synthetic workflow does not require external data.
 
 ## Reproducibility Boundaries
 
