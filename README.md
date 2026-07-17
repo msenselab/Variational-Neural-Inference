@@ -57,6 +57,7 @@ as an advanced LFADS reference.
 ```text
 Variational-Neural-Inference/
 |-- README.md
+|-- requirements-all.txt
 |-- requirements-core.txt
 |-- requirements-hmm-nwb.txt
 |-- requirements-jax.txt
@@ -100,8 +101,12 @@ python scripts/setup_all.py
 
 1. initializes both Git submodules;
 2. applies the modern-JAX and NumPy compatibility patches;
-3. upgrades `pip`;
-4. installs the complete CPU-compatible environment for notebooks 00-08.
+3. uses `uv pip` to install the complete CPU-compatible environment for
+   notebooks 00-08.
+
+The script automatically detects `uv`. If `uv` is unavailable, it falls back
+to standard `pip`. To require uv rather than allowing fallback, run
+`python scripts/setup_all.py --installer uv`.
 
 The command is idempotent and can be run again safely. Preview its actions
 without changing the environment with `python scripts/setup_all.py --dry-run`.
@@ -122,19 +127,19 @@ environment is not needed.
 ### Core PyTorch notebooks
 
 ```bash
-python -m pip install -r requirements-core.txt
+uv pip install -r requirements-core.txt
 ```
 
 ### HMM, NWB, and video workshop
 
 ```bash
-python -m pip install -r requirements-hmm-nwb.txt
+uv pip install -r requirements-hmm-nwb.txt
 ```
 
 ### JAX LFADS and gpSLDS notebooks
 
 ```bash
-python -m pip install -r requirements-jax.txt
+uv pip install -r requirements-jax.txt
 ```
 
 GPU-enabled JAX and PyTorch installations depend on the local CUDA version;
@@ -145,6 +150,7 @@ is required.
 
 | Notebooks | Requirements | Hardware and data notes |
 |---|---|---|
+| 00-08 | `requirements-all.txt` | Complete CPU-compatible environment used by `setup_all.py` |
 | 00-06 | `requirements-core.txt` | CPU supported; CUDA recommended for notebook 06 |
 | 03 optional NWB/video route | `requirements-hmm-nwb.txt` | Downloads an approximately 578 MB archive |
 | 07-08 | `requirements-jax.txt` | GPU recommended for full LFADS; notebook 08 teaching demo runs on CPU |
