@@ -1,0 +1,9 @@
+# GPU overlay for the Deeplearning environment on Windows/NVIDIA.
+# Install this file instead of requirements-all.txt to keep PyTorch on CUDA.
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+-r requirements-all.txt
+
+torch==2.3.1+cu118
+torchvision==0.18.1+cu118
+torchaudio==2.3.1+cu118

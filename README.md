@@ -142,6 +142,13 @@ uv pip install -r requirements-core.txt
 uv pip install -r requirements-hmm-nwb.txt
 ```
 
+For the full NVIDIA GPU environment used by the VAE/LFADS notebooks on
+Windows, install the CUDA overlay instead of `requirements-all.txt`:
+
+```bash
+uv pip install -r requirements-gpu.txt
+```
+
 ### JAX LFADS and gpSLDS notebooks
 
 ```bash
