@@ -1,115 +1,115 @@
-# 从EM算法到变分推断：完整教程
+# From EM to Variational Inference: A Complete Tutorial
 
 **Machine Learning Methods for Neural Data Analysis**  
 *Scott Linderman STATS 220/320*
 
 ---
 
-## 目录
+## Table of Contents
 
-1. [第12讲：EM算法基础](#第12讲em算法基础)
-2. [第13讲：线性动力系统与SLDS](#第13讲线性动力系统与slds)
-3. [第14讲：变分推断](#第14讲变分推断)
-4. [应用与实现](#应用与实现)
+1. [Lecture 12: Foundations of the EM Algorithm](#lecture-12-foundations-of-the-em-algorithm)
+2. [Lecture 13: Linear Dynamical Systems and SLDS](#lecture-13-linear-dynamical-systems-and-slds)
+3. [Lecture 14: Variational Inference](#lecture-14-variational-inference)
+4. [Applications and Implementation](#applications-and-implementation)
 
 ---
 
-# 第12讲：EM算法基础
+# Lecture 12: Foundations of the EM Algorithm
 
-## 1. 问题背景：聚类中的不确定性
+## 1. Problem Setting: Uncertainty in Clustering
 
-### 场景：视频行为识别
+### Scenario: Recognizing Behavior in Video
 
-想象你有一段动物行为视频，需要识别每一帧做了什么行为：
-- 走路（Walking）
-- 休息（Resting）  
-- 清理（Grooming）
+Imagine you have a video of animal behavior and need to identify what behavior is happening in each frame:
+- Walking
+- Resting
+- Grooming
 
 ```
-原始视频帧序列：
+Raw video frame sequence:
 y₁ → y₂ → y₃ → y₄ → y₅ → ... → y_T
 
-隐变量（真实行为）：
+Latent variables (true behavior):
 z₁   z₂   z₃   z₄   z₅        z_T
 ```
 
-### 朴素做法 vs 改进做法
+### Naive Approach vs. Improved Approach
 
-#### K-Means（硬分配）：
+#### K-Means (hard assignment):
 ```
-给每一帧一个确定的行为标签
-Frame 1: 100% 走路
-Frame 2: 100% 休息
-Frame 3: 100% 清理
-```
-
-**问题**：边界处的帧呢？不确定它属于哪个类别
-
-#### EM算法（软分配）：
-```
-给每一帧一个概率分布
-Frame 1: 50% 走路, 30% 休息, 20% 清理
-Frame 2: 10% 走路, 80% 休息, 10% 清理
-Frame 3: 5% 走路, 5% 休息, 90% 清理
+Assign each frame a definite behavior label
+Frame 1: 100% Walking
+Frame 2: 100% Resting
+Frame 3: 100% Grooming
 ```
 
-**优势**：更符合现实中的不确定性，更好地利用信息
+**Problem**: What about frames at the boundaries? It's unclear which category they belong to.
+
+#### EM Algorithm (soft assignment):
+```
+Assign each frame a probability distribution
+Frame 1: 50% Walking, 30% Resting, 20% Grooming
+Frame 2: 10% Walking, 80% Resting, 10% Grooming
+Frame 3: 5% Walking, 5% Resting, 90% Grooming
+```
+
+**Advantage**: Better matches real-world uncertainty and makes better use of the information.
 
 ---
 
-## 2. 高斯混合模型（Gaussian Mixture Model）
+## 2. Gaussian Mixture Model
 
-### 模型定义
+### Model Definition
 
-假设每个观测 $y_t$ 来自 $K$ 个高斯分布之一：
+Assume each observation $y_t$ comes from one of $K$ Gaussian distributions:
 
 $$y_t \sim \sum_{k=1}^{K} \pi_k \cdot \mathcal{N}(y_t | \mu_k, \Sigma_k)$$
 
-其中：
-- $\pi_k$ ：选择类别 $k$ 的**先验概率**，满足 $\sum_{k=1}^{K} \pi_k = 1$
-- $\mu_k$ ：类别 $k$ 的**均值**（中心）
-- $\Sigma_k$ ：类别 $k$ 的**协方差**（形状）
-- $z_t \in \{1,\ldots,K\}$ ：**隐变量**，表示真实的类别
+where:
+- $\pi_k$: the **prior probability** of choosing class $k$, satisfying $\sum_{k=1}^{K} \pi_k = 1$
+- $\mu_k$: the **mean** (center) of class $k$
+- $\Sigma_k$: the **covariance** (shape) of class $k$
+- $z_t \in \{1,\ldots,K\}$: the **latent variable**, indicating the true class
 
-### 联合分布
+### Joint Distribution
 
 $$p(y_t, z_t) = p(z_t) \cdot p(y_t | z_t) = \pi_{z_t} \cdot \mathcal{N}(y_t | \mu_{z_t}, \Sigma_{z_t})$$
 
-### 关键问题
+### The Key Problem
 
-**我们只能观测 $y_t$，看不到 $z_t$！**
+**We can only observe $y_t$; we never see $z_t$!**
 
-需要从观测推断隐变量。
+We need to infer the latent variables from the observations.
 
 ---
 
-## 3. K-Means：硬分配方法
+## 3. K-Means: The Hard-Assignment Method
 
-### 算法步骤
+### Algorithm Steps
 
-**初始化**：随机选择 $K$ 个初始中心 $\mu_1^{(0)}, \ldots, \mu_K^{(0)}$
+**Initialization**: randomly choose $K$ initial centers $\mu_1^{(0)}, \ldots, \mu_K^{(0)}$
 
-**迭代**：重复以下步骤直到收敛
+**Iteration**: repeat the following steps until convergence
 
-#### 第1步（分配/Assignment）
-给每个数据点分配到最近的聚类中心：
+#### Step 1 (Assignment)
+Assign each data point to the nearest cluster center:
 
 $$z_t \leftarrow \arg\max_k \left[-\frac{1}{2}\|y_t - \mu_k\|_2^2\right] = \arg\min_k \|y_t - \mu_k\|_2^2$$
 
-这等价于最大化：
+This is equivalent to maximizing:
 $$\log \mathcal{N}(y_t | \mu_k, I)$$
 
-#### 第2步（更新/Update）
-重新计算每个聚类的中心：
+#### Step 2 (Update)
+Recompute each cluster's center:
 
 $$\mu_k \leftarrow \frac{1}{N_k}\sum_{t: z_t=k} y_t$$
 
-其中 $N_k = \sum_t \mathbb{1}[z_t=k]$ 是分配到类别 $k$ 的点数。
+where $N_k = \sum_t \mathbb{1}[z_t=k]$ is the number of points assigned to class $k$.
 
-### 可视化
+### Visualization
 
 ```
-初始化            分配              更新              重新分配
+Initialize        Assign            Update            Reassign
   ×                × ○              × ○                × ○
  × ×              × ○ ○             × + ○             × + ○
 × × ×    →       × ○ ○ ○      →   × + + ○      →   × + + ○
@@ -119,47 +119,47 @@ $$\mu_k \leftarrow \frac{1}{N_k}\sum_{t: z_t=k} y_t$$
 (× = class 1, ○ = class 2, + = new centers)
 ```
 
-### K-Means的问题
+### The Problem with K-Means
 
 ```
-真实情况：存在一个边界模糊的点
+Reality: there is a point on a fuzzy boundary
         ╱─ Class 1
-    • ╱  ← 这个点呢？
+    • ╱  ← what about this point?
       ╱─ Class 2
-      
-K-Means会把它硬分配到一个类别，
-但实际上它可能属于两个类别！
+
+K-Means forces it into a single class,
+but it might actually belong to both!
 ```
 
 ---
 
-## 4. EM算法：软分配方法
+## 4. The EM Algorithm: The Soft-Assignment Method
 
-### 核心思想
+### Core Idea
 
-**不是硬分配，而是计算每个点属于每个类别的概率**
+**Instead of a hard assignment, compute the probability that each point belongs to each class**
 
-### E-Step（期望步骤）：计算责任度
+### E-Step (Expectation): Compute Responsibilities
 
-对每个数据点 $y_t$ 和每个类别 $k$，计算**后验概率**：
+For each data point $y_t$ and each class $k$, compute the **posterior probability**:
 
 $$q_{t,k} = \Pr(z_t = k | y_t; \theta) = \frac{\pi_k \mathcal{N}(y_t | \mu_k, \Sigma_k)}{\sum_{j=1}^{K} \pi_j \mathcal{N}(y_t | \mu_j, \Sigma_j)}$$
 
-这被称为**责任度（responsibility）**或**软分配权重**。
+This is called the **responsibility** or the **soft-assignment weight**.
 
-#### 直观解释
+#### Intuitive Explanation
 
-- $q_{t,k}$ 表示：给定观测 $y_t$ 和当前参数，它属于类别 $k$ 的概率
-- $\sum_k q_{t,k} = 1$（概率和为1）
-- 如果模型确信 $y_t$ 属于某类，$q_{t,k}$ 会接近1；否则分散
+- $q_{t,k}$ is the probability that $y_t$ belongs to class $k$, given the observation and the current parameters
+- $\sum_k q_{t,k} = 1$ (probabilities sum to 1)
+- If the model is confident $y_t$ belongs to some class, $q_{t,k}$ is close to 1; otherwise it is spread out
 
-#### 例子
+#### Example
 
-假设 $\mu_1 = 0, \mu_2 = 10$，观测 $y_t = 5$：
+Suppose $\mu_1 = 0, \mu_2 = 10$ and the observation is $y_t = 5$:
 
 ```
-如果 π₁ = π₂ = 0.5（等概率）
-且 Σ₁ = Σ₂ = 1（相同方差）
+If π₁ = π₂ = 0.5 (equal probability)
+and Σ₁ = Σ₂ = 1 (same variance)
 
 q_{t,1} = 𝒩(5|0,1) / (𝒩(5|0,1) + 𝒩(5|10,1))
         = exp(-12.5) / (exp(-12.5) + exp(-12.5))
@@ -169,341 +169,341 @@ q_{t,2} = 𝒩(5|10,1) / (𝒩(5|0,1) + 𝒩(5|10,1))
         = exp(-12.5) / (exp(-12.5) + exp(-12.5))
         = 0.5
 
-结果：这个点对两个类别的贡献相等！
+Result: this point contributes equally to both classes!
 ```
 
-### M-Step（最大化步骤）：使用软分配更新参数
+### M-Step (Maximization): Update Parameters Using Soft Assignments
 
-#### 更新均值
+#### Update the means
 
-使用**加权平均**替代硬分配的平均：
+Use a **weighted average** in place of the hard-assignment average:
 
 $$\mu_k \leftarrow \frac{\sum_t q_{t,k} y_t}{\sum_t q_{t,k}} = \frac{1}{N_k} \sum_t q_{t,k} y_t$$
 
-其中定义**有效数据点数**为：
+where the **effective number of data points** is defined as:
 $$N_k = \sum_t q_{t,k}$$
 
-这是分配给类别 $k$ 的"有效"数据点数（通常不是整数）。
+This is the "effective" number of data points assigned to class $k$ (usually not an integer).
 
-#### 更新协方差
+#### Update the covariances
 
 $$\Sigma_k \leftarrow \frac{\sum_t q_{t,k}(y_t - \mu_k)(y_t - \mu_k)^T}{\sum_t q_{t,k}} = \frac{1}{N_k} \sum_t q_{t,k}(y_t - \mu_k)(y_t - \mu_k)^T$$
 
-#### 更新先验
+#### Update the priors
 
 $$\pi_k \leftarrow \frac{\sum_t q_{t,k}}{T} = \frac{N_k}{T}$$
 
-### E-step vs M-step：对比K-Means
+### E-step vs. M-step: Comparison with K-Means
 
-| 步骤 | K-Means | EM |
+| Step | K-Means | EM |
 |------|---------|-----|
-| **分配** | $z_t = \arg\max_k \mathcal{N}(y_t \vert \mu_k, I)$ | $q_{t,k} = \frac{\pi_k \mathcal{N}(y_t \vert \mu_k, \Sigma_k)}{\sum_j \pi_j \mathcal{N}(y_t \vert \mu_j, \Sigma_j)}$ |
-| **分配的性质** | 硬（0或1） | 软（0到1之间） |
-| **更新** | $\mu_k \leftarrow \frac{1}{N_k}\sum_{t:z_t=k} y_t$ | $\mu_k \leftarrow \frac{1}{N_k}\sum_t q_{t,k} y_t$ |
-| **灵活性** | 低（方差固定为I） | 高（学习方差和先验） |
+| **Assignment** | $z_t = \arg\max_k \mathcal{N}(y_t \vert \mu_k, I)$ | $q_{t,k} = \frac{\pi_k \mathcal{N}(y_t \vert \mu_k, \Sigma_k)}{\sum_j \pi_j \mathcal{N}(y_t \vert \mu_j, \Sigma_j)}$ |
+| **Nature of assignment** | Hard (0 or 1) | Soft (between 0 and 1) |
+| **Update** | $\mu_k \leftarrow \frac{1}{N_k}\sum_{t:z_t=k} y_t$ | $\mu_k \leftarrow \frac{1}{N_k}\sum_t q_{t,k} y_t$ |
+| **Flexibility** | Low (variance fixed at I) | High (learns variance and prior) |
 
 ---
 
-## 5. EM算法的数学基础
+## 5. Mathematical Foundations of EM
 
-### 为什么E-step和M-step能工作？
+### Why Do the E-step and M-step Work?
 
-EM算法在最大化**对数边际似然**：
+The EM algorithm maximizes the **log marginal likelihood**:
 
 $$\log p(y_1:T; \theta) = \log \sum_{z_1:T} p(y_1:T, z_1:T | \theta)$$
 
-### 问题：难以直接计算
+### The Problem: Hard to Compute Directly
 
-这个求和有 $K^T$ 项（对于 $T$ 个数据点和 $K$ 个类别），通常不可计算。
+This sum has $K^T$ terms (for $T$ data points and $K$ classes), which is generally intractable.
 
-### EM的技巧：下界（ELBO）
+### The EM Trick: A Lower Bound (ELBO)
 
-引入一个**下界**，称为**证据下界（Evidence Lower Bound, ELBO）**：
+Introduce a **lower bound**, called the **Evidence Lower Bound (ELBO)**:
 
 $$\log p(y_1:T; \theta) \geq \mathbb{E}_{q}[\log p(y_1:T, z_1:T | \theta)] - \mathbb{E}_q[\log q(z_1:T)]$$
 
-其中 $q(z_1:T)$ 是任意分布。
+where $q(z_1:T)$ is an arbitrary distribution.
 
-### 三个关键事实
+### Three Key Facts
 
-**事实1**：ELBO是对数似然的下界
+**Fact 1**: The ELBO is a lower bound on the log likelihood
 $$\log p(y; \theta) \geq \text{ELBO}(q, \theta)$$
 
-**事实2**：等号成立当且仅当 $q(z) = p(z|y; \theta)$（真实后验）
+**Fact 2**: Equality holds if and only if $q(z) = p(z|y; \theta)$ (the true posterior)
 
-**事实3**：EM算法交替：
-- **E-step**：固定 $\theta$，优化 $q$ 使 ELBO 最大
-- **M-step**：固定 $q$，优化 $\theta$ 使 ELBO 最大
+**Fact 3**: The EM algorithm alternates:
+- **E-step**: fix $\theta$, optimize $q$ to maximize the ELBO
+- **M-step**: fix $q$, optimize $\theta$ to maximize the ELBO
 
-### 收敛性
+### Convergence
 
-EM算法保证：
-1. ELBO 单调递增
-2. 算法收敛到**似然函数的局部最大值**
-3. 每次迭代都会改进数据的对数概率（或保持不变）
+The EM algorithm guarantees:
+1. The ELBO increases monotonically
+2. The algorithm converges to a **local maximum of the likelihood**
+3. Each iteration improves (or leaves unchanged) the log probability of the data
 
-### 直观图示
+### Intuitive Illustration
 
 ```
-对数似然: log p(y|θ)
+log likelihood: log p(y|θ)
               ↑
-              │         真实后验
+              │         true posterior
               │          (q=p)
         ELBO ┤ ╱────────●────────
               │╱          ╲
-              │            ╲ KL散度
+              │            ╲ KL divergence
               │             ╲
-          初始q ┤─────────────●
+        initial q ┤─────────────●
               │
-        参数空间 →θ
-        
-每次EM迭代都上升，最终收敛
+        parameter space →θ
+
+Each EM iteration ascends, eventually converging
 ```
 
 ---
 
-## 6. 高斯HMM：加入时间结构
+## 6. Gaussian HMM: Adding Temporal Structure
 
-### 从GMM到HMM
+### From GMM to HMM
 
-**GMM**：每个数据点独立
+**GMM**: each data point is independent
 $$p(y_1:T, z_1:T) = \prod_t p(z_t) p(y_t | z_t)$$
 
-**HMM**：加入时间依赖
+**HMM**: add temporal dependence
 $$p(y_1:T, z_1:T) = p(z_1) \prod_t p(z_t | z_{t-1}) \prod_t p(y_t | z_t)$$
 
-### 高斯HMM的模型
+### The Gaussian HMM Model
 
-**隐变量动力学**（Markov链）：
+**Latent dynamics** (Markov chain):
 $$z_1 \sim \text{Cat}(\pi)$$
 $$z_t | z_{t-1} \sim \text{Cat}(P_{z_{t-1}})$$
 
-其中 $P$ 是 $K \times K$ **转移矩阵**，$P_{i,j} = \Pr(z_t = j | z_{t-1} = i)$
+where $P$ is the $K \times K$ **transition matrix**, $P_{i,j} = \Pr(z_t = j | z_{t-1} = i)$
 
-**发射模型**：
+**Emission model**:
 $$y_t | z_t \sim \mathcal{N}(C_{z_t} + d, R)$$
 
-或用统一符号：
+or in unified notation:
 $$y_t | z_t \sim \mathcal{N}(Cz_t + d, R)$$
 
-### 参数
+### Parameters
 
-完整的HMM参数：
+The full HMM parameters:
 $$\theta = (\pi, P, \{C_k, d_k, R\}_{k=1}^K)$$
 
-### 为什么HMM比GMM更难？
+### Why Is the HMM Harder Than the GMM?
 
-#### GMM中：
-$z_t$ 是独立的，所以后验分解：
+#### In a GMM:
+$z_t$ are independent, so the posterior factorizes:
 $$q(z_1:T) = \prod_t q(z_t)$$
 
-每个时刻的后验可以独立计算。
+Each time step's posterior can be computed independently.
 
-#### HMM中：
-$z_t$ 通过转移矩阵相关：
+#### In an HMM:
+$z_t$ are correlated through the transition matrix:
 $$p(z_1:T) = p(z_1) \prod_t p(z_t | z_{t-1})$$
 
-**后验不再分解！**
+**The posterior no longer factorizes!**
 
-例子：
+Example:
 ```
 GMM: z₁ ⊥ z₂ ⊥ z₃ ...
-      (独立)
+      (independent)
 
 HMM: z₁ → z₂ → z₃ ...
-     (Markov链)
-     
-     观测 y 会给 z 施加时间约束
-     前面的 z₁ 会影响后面的 z₂ 的后验
+     (Markov chain)
+
+     The observations y impose temporal constraints on z
+     An earlier z₁ affects the posterior of a later z₂
 ```
 
-### HMM的E-step：前向-后向算法
+### The HMM E-step: The Forward-Backward Algorithm
 
-虽然后验复杂，但存在**高效的递归算法**。
+Although the posterior is complex, there is an **efficient recursive algorithm**.
 
-**前向消息**（从过去到现在）：
+**Forward messages** (from past to present):
 $$\alpha_t(z_t) = p(y_1:t, z_t)$$
 
-递推：
+Recursion:
 $$\alpha_{t+1}(z_{t+1}) = p(y_t | z_t) \sum_{z_t} p(z_{t+1} | z_t) \alpha_t(z_t)$$
 
-**后向消息**（从未来到现在）：
+**Backward messages** (from future to present):
 $$\beta_t(z_t) = p(y_{t+1:T} | z_t)$$
 
-递推：
+Recursion:
 $$\beta_t(z_t) = \sum_{z_{t+1}} p(y_{t+1}|z_{t+1}) p(z_{t+1}|z_t) \beta_{t+1}(z_{t+1})$$
 
-**后验边际**：
+**Posterior marginal**:
 $$p(z_t | y_1:T) \propto \alpha_t(z_t) \beta_t(z_t)$$
 
-这个算法在 $O(K^2 T)$ 时间内计算所有后验！
+This algorithm computes all posteriors in $O(K^2 T)$ time!
 
 ---
 
-## 第12讲小结
+## Lecture 12 Summary
 
-### 关键概念
+### Key Concepts
 
-1. **软分配**：EM通过概率而不是硬标签来处理不确定性
-2. **ELBO**：下界使得优化可行
-3. **E-step和M-step**：交替优化下界的两个部分
-4. **时间结构**：HMM引入了Markov依赖，但前向-后向算法仍然可行
+1. **Soft assignment**: EM handles uncertainty with probabilities instead of hard labels
+2. **ELBO**: the lower bound makes optimization tractable
+3. **E-step and M-step**: alternately optimize the two parts of the lower bound
+4. **Temporal structure**: HMMs introduce Markov dependence, but forward-backward is still tractable
 
-### 参数学习的流程
+### The Parameter-Learning Loop
 
 ```
-初始化参数 θ⁽⁰⁾
+Initialize parameters θ⁽⁰⁾
 
-迭代 i = 1, 2, 3, ...
-  E-step：计算 q(z) = p(z | y; θ⁽ⁱ⁻¹⁾)
-          （对GMM直接计算，对HMM用前向-后向）
-  
-  M-step：θ⁽ⁱ⁾ = argmax_θ E_q[log p(y, z | θ)]
-          （有闭形式解）
-  
-  收敛检查：如果似然变化 < ε，停止
+Iterate i = 1, 2, 3, ...
+  E-step: compute q(z) = p(z | y; θ⁽ⁱ⁻¹⁾)
+          (direct for GMM; forward-backward for HMM)
 
-返回最终参数 θ*
+  M-step: θ⁽ⁱ⁾ = argmax_θ E_q[log p(y, z | θ)]
+          (has a closed-form solution)
+
+  Convergence check: if the likelihood change < ε, stop
+
+Return the final parameters θ*
 ```
 
 ---
 
-# 第13讲：线性动力系统与SLDS
+# Lecture 13: Linear Dynamical Systems and SLDS
 
-## 1. 从HMM到LDS：隐变量的升级
+## 1. From HMM to LDS: Upgrading the Latent Variable
 
-### 维度升级
+### Dimensional Upgrade
 
-| 特性 | HMM | LDS |
+| Property | HMM | LDS |
 |------|-----|-----|
-| **隐变量** | $z_t \in \{1,\ldots,K\}$ | $x_t \in \mathbb{R}^d$ |
-| **类型** | 离散 | 连续 |
-| **转移** | 概率表（$K \times K$矩阵） | 线性高斯动力学 |
-| **参数** | $O(K^2)$ | $O(d^2)$ |
-| **表达力** | 有限模式 | 连续轨迹 |
+| **Latent variable** | $z_t \in \{1,\ldots,K\}$ | $x_t \in \mathbb{R}^d$ |
+| **Type** | Discrete | Continuous |
+| **Transition** | Probability table ($K \times K$ matrix) | Linear-Gaussian dynamics |
+| **Parameters** | $O(K^2)$ | $O(d^2)$ |
+| **Expressiveness** | Finite set of modes | Continuous trajectories |
 
-### 直观对比
+### Intuitive Comparison
 
-**HMM**：系统在几个离散状态之间跳跃
+**HMM**: the system jumps between a few discrete states
 ```
 State 1 ↔ State 2 ↔ State 3
    ↑
    └────────────────┘
 ```
 
-**LDS**：系统在连续空间中平滑演化
+**LDS**: the system evolves smoothly in a continuous space
 ```
 x₁ → x₂ → x₃ → ... → x_T
-在ℝᵈ中的光滑轨迹
+a smooth trajectory in ℝᵈ
 ```
 
 ---
 
-## 2. 高斯线性动力系统（Gaussian LDS）
+## 2. Gaussian Linear Dynamical System (Gaussian LDS)
 
-### 完整模型
+### The Full Model
 
-**动力学（Dynamics）** - 隐变量如何随时间演化：
+**Dynamics** — how the latent variable evolves over time:
 
 $$x_{t+1} \sim \mathcal{N}(Ax_t + b, Q)$$
 
-**发射（Emission）** - 如何从隐变量生成观测：
+**Emission** — how observations are generated from the latent variable:
 
 $$y_t \sim \mathcal{N}(Cx_t + d, R)$$
 
-**初始分布**：
+**Initial distribution**:
 
 $$x_1 \sim \mathcal{N}(m, Q_0)$$
 
-### 参数解释
+### Parameter Interpretation
 
-#### 动力学参数
-- **$A$ (d×d 动力学矩阵)**：控制隐状态如何演化
-  - $A$ 的特征值决定系统的稳定性
-  - $|λ| < 1$：衰减到固定点
-  - $|λ| = 1$：保持循环或线性增长
-  - $|λ| > 1$：发散
+#### Dynamics parameters
+- **$A$ (d×d dynamics matrix)**: controls how the latent state evolves
+  - The eigenvalues of $A$ determine the system's stability
+  - $|λ| < 1$: decays to a fixed point
+  - $|λ| = 1$: stays cyclic or grows linearly
+  - $|λ| > 1$: diverges
 
-- **$b$ (d维偏置)**：恒定的驱动力或输入
+- **$b$ (d-dim bias)**: a constant driving force or input
 
-- **$Q$ (d×d 过程协方差)**：过程噪声的大小
-  - 高的方差→系统行为更随机
-  - 低的方差→系统行为更确定
+- **$Q$ (d×d process covariance)**: the magnitude of the process noise
+  - High variance → more random behavior
+  - Low variance → more deterministic behavior
 
-#### 发射参数
-- **$C$ (p×d 发射矩阵)**：将隐变量投影到观测空间
-  - $p$：观测维度
-  - $d$：隐变量维度
-  - 通常 $d \ll p$（降维）
+#### Emission parameters
+- **$C$ (p×d emission matrix)**: projects the latent variable to the observation space
+  - $p$: observation dimension
+  - $d$: latent dimension
+  - usually $d \ll p$ (dimensionality reduction)
 
-- **$d$ (p维偏置)**：观测的偏移
+- **$d$ (p-dim bias)**: an offset on the observations
 
-- **$R$ (p×p 观测协方差)**：观测噪声
-  - 高噪声→观测不可靠
-  - 低噪声→观测可靠
+- **$R$ (p×p observation covariance)**: observation noise
+  - High noise → unreliable observations
+  - Low noise → reliable observations
 
-### 完整的联合概率
+### The Full Joint Probability
 
 $$p(x_1:T, y_1:T | \theta) = \mathcal{N}(x_1 | m, Q_0) \prod_{t=2}^{T} \mathcal{N}(x_{t} | Ax_{t-1}+b, Q) \prod_{t=1}^{T} \mathcal{N}(y_t | Cx_t+d, R)$$
 
 ---
 
-## 3. LDS能做什么：丰富的动态行为
+## 3. What Can an LDS Do? Rich Dynamical Behavior
 
-### 理论基础
+### Theoretical Basis
 
-虽然看起来很受限（只有线性！），但LDS实际上能模拟**丰富的动态**。
+Although it looks restrictive (only linear!), an LDS can actually model **rich dynamics**.
 
-通过改变 $A$ 矩阵的特征值和特征向量，我们可以创建各种行为：
+By changing the eigenvalues and eigenvectors of the $A$ matrix, we can create a variety of behaviors:
 
-### 案例1：点吸引子（Point Attractor）- 记忆
+### Case 1: Point Attractor — Memory
 
 $$A = \begin{pmatrix} 0.9 & 0 \\ 0 & 0.9 \end{pmatrix}$$
 
-**行为**：系统从任何初始状态衰减到原点
+**Behavior**: the system decays to the origin from any initial state
 ```
-轨迹图：
+Trajectory:
   ↖ ↑ ↗
    \|/
-    ● (0,0) ← 吸引子
+    ● (0,0) ← attractor
    /|\
   ↙ ↓ ↘
 ```
 
-**应用**：
-- 记忆效应
-- 神经活动的衰减
-- 决策后的复原
+**Applications**:
+- Memory effects
+- Decay of neural activity
+- Recovery after a decision
 
-### 案例2：旋转动力学（Rotational Dynamics）- 振荡
+### Case 2: Rotational Dynamics — Oscillation
 
 $$A = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}$$
 
-**行为**：隐变量在2D平面上以角度 $\theta$ 旋转
+**Behavior**: the latent variable rotates in the 2D plane by angle $\theta$
 ```
-轨迹图：
+Trajectory:
   ↖ ↑ ↗
-   \|/    ↻ 旋转
+   \|/    ↻ rotation
     ●
    /|\
   ↙ ↓ ↘
 ```
 
-**应用**：
-- 运动控制（马达回路）
-- 周期性活动
-- 摆锤运动
+**Applications**:
+- Motor control (motor circuits)
+- Periodic activity
+- Pendulum motion
 
-### 案例3：线吸引子（Line Attractor）- 积分
+### Case 3: Line Attractor — Integration
 
 $$A = \begin{pmatrix} 1 & 0 \\ 0 & 0.9 \end{pmatrix}$$
 
-**行为**：
-- 第一维：保持（不衰减）
-- 第二维：衰减
+**Behavior**:
+- First dimension: preserved (no decay)
+- Second dimension: decays
 
 ```
-轨迹图（相平面）：
+Trajectory (phase plane):
   x₂ ↑
      |
   0.9|  ╱──
@@ -512,316 +512,316 @@ $$A = \begin{pmatrix} 1 & 0 \\ 0 & 0.9 \end{pmatrix}$$
      |  ╱
 ```
 
-**应用**：
-- 积分器（累积信息）
-- 视觉追踪（位置记忆）
-- 决策积分（证据累积）
+**Applications**:
+- Integrator (accumulates information)
+- Visual tracking (position memory)
+- Decision integration (evidence accumulation)
 
-### 案例4：鞍点（Saddle Point）- 竞争
+### Case 4: Saddle Point — Competition
 
 $$A = \begin{pmatrix} 1.1 & 0 \\ 0 & 0.9 \end{pmatrix}$$
 
-**行为**：
-- 第一维：放大
-- 第二维：衰减
+**Behavior**:
+- First dimension: amplified
+- Second dimension: decays
 
 ```
-轨迹图：
+Trajectory:
   x₂ ↑
      |╱─╲
-  0  |─●─ x₁  
+  0  |─●─ x₁
      |╲─╱
 ```
 
-**应用**：
-- 竞争动力学（赢家通吃）
-- 分类决策
-- 神经竞争
+**Applications**:
+- Competitive dynamics (winner-take-all)
+- Categorical decisions
+- Neural competition
 
-### 关键洞察
+### Key Insight
 
 $$A = PΛP^{-1}$$
 
-其中 $Λ$ 是特征值矩阵。通过控制特征值 $\lambda_i$ 的大小和符号，我们得到：
-- $|\lambda| < 1$：衰减
-- $|\lambda| = 1$：循环或边界
-- $|\lambda| > 1$：放大
+where $Λ$ is the matrix of eigenvalues. By controlling the magnitude and sign of the eigenvalues $\lambda_i$, we get:
+- $|\lambda| < 1$: decay
+- $|\lambda| = 1$: cycling or boundary
+- $|\lambda| > 1$: amplification
 
 ---
 
-## 4. EM for LDS：参数拟合
+## 4. EM for the LDS: Parameter Fitting
 
-### 学习问题
+### The Learning Problem
 
-**给定**：观测序列 $y_1:T$  
-**求**：参数 $\theta = (A, b, Q, C, d, R, m, Q_0)$
+**Given**: an observation sequence $y_1:T$  
+**Find**: parameters $\theta = (A, b, Q, C, d, R, m, Q_0)$
 
-### 两步EM
+### Two-Step EM
 
-#### E-step：推断隐状态
+#### E-step: infer the latent states
 
-计算后验分布：
+Compute the posterior distribution:
 $$q(x_{1:T}) \approx p(x_{1:T} | y_{1:T}; \theta)$$
 
-#### M-step：更新参数
+#### M-step: update the parameters
 
 $$\theta \leftarrow \arg\max_\theta \mathbb{E}_{q}[\log p(x_{1:T}, y_{1:T} | \theta)]$$
 
-### 关键发现：线性高斯系统可以精确求解！
+### Key Finding: Linear-Gaussian Systems Can Be Solved Exactly!
 
-对于线性高斯系统，**后验完全可以精确计算**。
+For a linear-Gaussian system, the **posterior can be computed exactly**.
 
-这是因为：
-1. 线性变换保留高斯性
-2. 高斯分布的乘积仍是高斯
-3. 后验是一个（或者说 $T$ 个边际的）高斯分布
+This is because:
+1. Linear transformations preserve Gaussianity
+2. The product of Gaussians is still Gaussian
+3. The posterior is a Gaussian (or, for the $T$ marginals, a set of Gaussians)
 
-**算法**：Kalman 滤波器和平滑器
+**Algorithm**: the Kalman filter and smoother
 
 ---
 
-## 5. Kalman 滤波器：前向推理
+## 5. The Kalman Filter: Forward Inference
 
-### 基本思想
+### Basic Idea
 
-在每个时刻 $t$，跟踪两个量：
-1. **预测**：基于到 $t-1$ 的信息，对 $x_t$ 的估计
-2. **更新**：看到 $y_t$ 后，对 $x_t$ 的改进估计
+At each time $t$, track two quantities:
+1. **Prediction**: an estimate of $x_t$ based on information up to $t-1$
+2. **Update**: a refined estimate of $x_t$ after seeing $y_t$
 
-### 递推关系
+### Recursions
 
-定义：
-- $\mu_{t|t-1}$ = 在看到 $y_t$ 之前，对 $x_t$ 的预测均值
-- $\Sigma_{t|t-1}$ = 这个预测的协方差
-- $\mu_{t|t}$ = 看到 $y_t$ 后，对 $x_t$ 的后验均值
-- $\Sigma_{t|t}$ = 对应的后验协方差
+Define:
+- $\mu_{t|t-1}$ = the predicted mean of $x_t$ before seeing $y_t$
+- $\Sigma_{t|t-1}$ = the covariance of that prediction
+- $\mu_{t|t}$ = the posterior mean of $x_t$ after seeing $y_t$
+- $\Sigma_{t|t}$ = the corresponding posterior covariance
 
-### 算法步骤
+### Algorithm Steps
 
-#### 初始化
+#### Initialization
 $$\mu_{1|0} = m, \quad \Sigma_{1|0} = Q_0$$
 
-#### 对每个时刻 $t = 1, 2, \ldots, T$：
+#### For each time $t = 1, 2, \ldots, T$:
 
-**1) 预测（Prediction）**：
+**1) Prediction**:
 
-从上一时刻的后验，预测下一时刻的状态
+From the previous time step's posterior, predict the next state
 $$\mu_{t|t-1} = A\mu_{t-1|t-1} + b$$
 
 $$\Sigma_{t|t-1} = A\Sigma_{t-1|t-1}A^T + Q$$
 
-**2) 更新（Update）**：
+**2) Update**:
 
-观测到 $y_t$ 后，改进对 $x_t$ 的估计
+After observing $y_t$, refine the estimate of $x_t$
 
-首先计算 **Kalman增益**：
+First compute the **Kalman gain**:
 $$K_t = \Sigma_{t|t-1}C^T(C\Sigma_{t|t-1}C^T + R)^{-1}$$
 
-然后更新均值和协方差：
+Then update the mean and covariance:
 $$\mu_{t|t} = \mu_{t|t-1} + K_t(y_t - C\mu_{t|t-1} - d)$$
 
 $$\Sigma_{t|t} = (I - K_tC)\Sigma_{t|t-1}$$
 
-### 直观解释
+### Intuitive Explanation
 
-#### Kalman增益 $K_t$
+#### The Kalman gain $K_t$
 
-$$K_t = \frac{\text{预测不确定性}}{\text{预测不确定性 + 观测不确定性}}$$
+$$K_t = \frac{\text{prediction uncertainty}}{\text{prediction uncertainty + observation uncertainty}}$$
 
-- 如果预测很准（$\Sigma_{t|t-1}$ 小），$K_t$ 小→相信预测
-- 如果观测很准（$R$ 小），$K_t$ 大→相信观测
+- If the prediction is accurate ($\Sigma_{t|t-1}$ small), $K_t$ is small → trust the prediction
+- If the observation is accurate ($R$ small), $K_t$ is large → trust the observation
 
-#### 预测误差（Innovation）
+#### The prediction error (innovation)
 
 $$\tilde{y}_t = y_t - C\mu_{t|t-1} - d$$
 
-这是观测的"惊讶度"——实际看到的与预测的差异。
+This is the "surprise" of the observation — the difference between what was actually seen and what was predicted.
 
-### 可视化示例
+### Worked Example
 
 ```
-假设 d=1，A=0.9，b=0，R=1
+Suppose d=1, A=0.9, b=0, R=1
 
-时刻t=1: 初始预测
+Time t=1: initial prediction
   μ₁|₀ = m, Σ₁|₀ = Q₀
-  观测到 y₁=5
+  observe y₁=5
   K₁ = Q₀/(Q₀+1)
-  如果Q₀=1，K₁=0.5
-  → 预测和观测各贡献50%
+  if Q₀=1, K₁=0.5
+  → prediction and observation each contribute 50%
 
-时刻t=2:
-  预测：μ₂|₁ = 0.9·μ₁|₁
-  如果μ₁|₁=2.5，则μ₂|₁=2.25
-  观测到y₂=6
-  又应用Kalman增益...
+Time t=2:
+  predict: μ₂|₁ = 0.9·μ₁|₁
+  if μ₁|₁=2.5, then μ₂|₁=2.25
+  observe y₂=6
+  apply the Kalman gain again...
 
-结果：光滑的轨迹，平衡了动力学和观测
+Result: a smooth trajectory balancing dynamics and observations
 ```
 
 ---
 
-## 6. Kalman 平滑器：后向修正
+## 6. The Kalman Smoother: Backward Correction
 
-### 局限性
+### Limitation
 
-Kalman 滤波器只使用了 **过去的信息**（$y_1:t$）。
+The Kalman filter uses only **past information** ($y_1:t$).
 
-但我们有**整个序列** $y_1:T$！为什么不用未来的信息？
+But we have the **entire sequence** $y_1:T$! Why not use the future information too?
 
-### Kalman平滑器的思想
+### The Idea of the Kalman Smoother
 
-**后向传播**，结合未来的信息来改进对过去的估计。
+**Propagate backward**, combining future information to improve estimates of the past.
 
-### 算法
+### Algorithm
 
-#### 前向传递（同Kalman滤波器）
+#### Forward pass (same as the Kalman filter)
 
-计算所有 $\mu_{t|t}, \Sigma_{t|t}$ 和 $\mu_{t|t-1}, \Sigma_{t|t-1}$
+Compute all $\mu_{t|t}, \Sigma_{t|t}$ and $\mu_{t|t-1}, \Sigma_{t|t-1}$
 
-#### 后向传递
+#### Backward pass
 
-从 $t = T-1$ 回到 $1$，对每个 $t$ 计算：
+From $t = T-1$ back to $1$, for each $t$ compute:
 
-计算 **平滑增益**：
+The **smoothing gain**:
 $$J_t = \Sigma_{t|t}A^T \Sigma_{t+1|t}^{-1}$$
 
-更新均值和协方差：
+Update the mean and covariance:
 $$\mu_{t|T} = \mu_{t|t} + J_t(\mu_{t+1|T} - \mu_{t+1|t})$$
 
 $$\Sigma_{t|T} = \Sigma_{t|t} + J_t(\Sigma_{t+1|T} - \Sigma_{t+1|t})J_t^T$$
 
-### 关键性质
+### Key Properties
 
-- **方差减少**：$\Sigma_{t|T} \leq \Sigma_{t|t}$（平滑后的不确定性更小）
-- **方差减少**：$\Sigma_{t|T} \leq \Sigma_{t|t-1}$（比单向预测更好）
+- **Variance reduction**: $\Sigma_{t|T} \leq \Sigma_{t|t}$ (smoothing gives smaller uncertainty)
+- **Variance reduction**: $\Sigma_{t|T} \leq \Sigma_{t|t-1}$ (better than one-directional prediction)
 
-直观图示：
+Intuitive illustration:
 ```
-Kalman滤波（只看过去）：
-  不确定性: ▓▓▓▓▓▓▓▓▓▓▓▓
+Kalman filter (past only):
+  uncertainty: ▓▓▓▓▓▓▓▓▓▓▓▓
             ↓
            ▓▓▓▓▓▓▓▓▓↘
 
-Kalman平滑（看整个序列）：
-  不确定性: ▓▓▓▓▓▓▓▓▓▓▓▓
+Kalman smoother (whole sequence):
+  uncertainty: ▓▓▓▓▓▓▓▓▓▓▓▓
             ↓
            ▓▓▓▓▓▓   ↘
                 ↗ ▓
-           
-平滑器给出的是一条更清晰的轨迹
+
+The smoother yields a cleaner trajectory
 ```
 
 ---
 
-## 7. EM for LDS - 完整流程
+## 7. EM for the LDS — The Complete Loop
 
-### M-step的闭形式解
+### Closed-Form M-step
 
-给定充分统计量（来自Kalman平滑器）：
-- $\mathbb{E}[x_t]$ 
+Given the sufficient statistics (from the Kalman smoother):
+- $\mathbb{E}[x_t]$
 - $\text{Cov}[x_t]$
 - $\mathbb{E}[x_{t+1}x_t^T]$
 
-参数有**闭形式更新**：
+the parameters have **closed-form updates**:
 
-#### 动力学参数
+#### Dynamics parameters
 
 $$A \leftarrow \left(\sum_{t=1}^{T-1} \mathbb{E}[x_{t+1}x_t^T]\right) \left(\sum_{t=1}^{T-1} \mathbb{E}[x_tx_t^T]\right)^{-1}$$
 
-这是**加权最小二乘法**：
+This is **weighted least squares**:
 $$A = \arg\min_A \sum_t (x_{t+1} - Ax_t)^2$$
 
-#### 发射参数
+#### Emission parameters
 
 $$C \leftarrow \left(\sum_{t=1}^{T} \mathbb{E}[y_tx_t^T]\right) \left(\sum_{t=1}^{T} \mathbb{E}[x_tx_t^T]\right)^{-1}$$
 
-类似地，这也是最小二乘：
+Similarly, this is also least squares:
 $$C = \arg\min_C \sum_t (y_t - Cx_t)^2$$
 
-### EM for LDS 的完整流程
+### The Complete EM-for-LDS Loop
 
 ```
-初始化参数 θ⁽⁰⁾
+Initialize parameters θ⁽⁰⁾
 
-迭代 i = 1, 2, 3, ...
-  
-  E-step：
-    • Kalman滤波：前向传播，得到μₜ|ₜ, Σₜ|ₜ
-    • Kalman平滑：后向传播，得到μₜ|ₜ, Σₜ|ₜ
-    • 计算充分统计量：E[xₜ], Cov[xₜ], E[xₜxₜ₊₁ᵀ]
-  
-  M-step：
-    • 用充分统计量计算 A, b, Q, C, d, R
-    • （有闭形式解，不需要优化）
-  
-  收敛检查
+Iterate i = 1, 2, 3, ...
 
-返回最终参数 θ*
+  E-step:
+    • Kalman filter: forward pass, obtain μₜ|ₜ, Σₜ|ₜ
+    • Kalman smoother: backward pass, obtain μₜ|ₜ, Σₜ|ₜ
+    • Compute sufficient statistics: E[xₜ], Cov[xₜ], E[xₜxₜ₊₁ᵀ]
+
+  M-step:
+    • Compute A, b, Q, C, d, R from the sufficient statistics
+    • (closed-form solution, no optimization needed)
+
+  Convergence check
+
+Return the final parameters θ*
 ```
 
-### 重要性质
+### Important Properties
 
-1. **精确推断**：对LDS，E-step可以精确计算
-2. **可扩展性**：计算复杂度 $O(d^3 T)$，其中 $d$ 是隐维度
-3. **全局最优**：对给定的 $\theta$，Kalman平滑器给出最优的 $q$
-4. **收敛**：EM保证似然单调递增，收敛到局部最大值
+1. **Exact inference**: for an LDS, the E-step can be computed exactly
+2. **Scalability**: computational complexity $O(d^3 T)$, where $d$ is the latent dimension
+3. **Global optimum**: for a given $\theta$, the Kalman smoother gives the optimal $q$
+4. **Convergence**: EM guarantees the likelihood increases monotonically, converging to a local maximum
 
 ---
 
 ## 8. Switching Linear Dynamical Systems (SLDS)
 
-### 问题升级：动力学不是固定的
+### Upgrading the Problem: The Dynamics Are Not Fixed
 
-现在假设**系统在不同的"模式"之间切换**。
+Now assume the **system switches between different "modes"**.
 
-### 实际例子：老鼠行为
+### A Concrete Example: Mouse Behavior
 
-一只老鼠有多种行为模式：
-- **走路模式**：快速移动，位置线性增长
-- **休息模式**：静止不动，位置不变
-- **清理模式**：原地活动，位置波动小
+A mouse has several behavioral modes:
+- **Walking mode**: moving quickly, position grows linearly
+- **Resting mode**: staying still, position unchanged
+- **Grooming mode**: activity in place, small position fluctuations
 
-系统在这些模式之间切换。
+The system switches between these modes.
 
-### SLDS 的完整模型
+### The Full SLDS Model
 
-#### 离散状态（模式）转移 - HMM部分
+#### Discrete-state (mode) transitions — the HMM part
 
 $$z_t | z_{t-1} \sim \text{Cat}(P_{z_{t-1}})$$
 
-其中 $P$ 是 $K \times K$ 转移矩阵。
+where $P$ is the $K \times K$ transition matrix.
 
-#### 连续状态动力学 - 模式相关
+#### Continuous-state dynamics — mode-dependent
 
 $$x_{t+1} | x_t, z_t \sim \mathcal{N}(A_{z_t}x_t + b_{z_t}, Q_{z_t})$$
 
-关键：**每个模式 $z_t$ 有自己的动力学矩阵 $A_{z_t}$**
+Key: **each mode $z_t$ has its own dynamics matrix $A_{z_t}$**
 
-#### 共享的发射
+#### Shared emission
 
 $$y_t | x_t \sim \mathcal{N}(Cx_t + d, R)$$
 
-（通常假设发射对所有模式是一样的）
+(usually the emission is assumed to be the same across all modes)
 
-### 图形模型
+### Graphical Model
 
 ```
-z₁ → z₂ → z₃ → ... → z_T    (离散：模式转移)
+z₁ → z₂ → z₃ → ... → z_T    (discrete: mode transitions)
  ↓    ↓    ↓         ↓
-x₁ → x₂ → x₃ → ... → x_T    (连续：状态演化)
+x₁ → x₂ → x₃ → ... → x_T    (continuous: state evolution)
  ↓    ↓    ↓         ↓
-y₁   y₂   y₃  ...  y_T     (观测)
+y₁   y₂   y₃  ...  y_T     (observations)
 
-z_t依赖于z_{t-1}（HMM）
-x_t依赖于x_{t-1}和z_t（LDS，但动力学取决于z_t）
-y_t只依赖于x_t
+z_t depends on z_{t-1} (HMM)
+x_t depends on x_{t-1} and z_t (LDS, but the dynamics depend on z_t)
+y_t depends only on x_t
 ```
 
-### 联合分布
+### Joint Distribution
 
 $$p(z_{1:T}, x_{1:T}, y_{1:T} | \theta) = p(z_1) \prod_{t=2}^T p(z_t|z_{t-1}) \prod_{t=1}^T p(x_t | x_{t-1}, z_t) \prod_{t=1}^T p(y_t | x_t)$$
 
-其中：
+where:
 - $p(z_1) = \pi_{z_1}$
 - $p(z_t|z_{t-1}) = P_{z_{t-1}, z_t}$
 - $p(x_t | x_{t-1}, z_t) = \mathcal{N}(A_{z_t}x_{t-1}+b_{z_t}, Q_{z_t})$
@@ -829,856 +829,856 @@ $$p(z_{1:T}, x_{1:T}, y_{1:T} | \theta) = p(z_1) \prod_{t=2}^T p(z_t|z_{t-1}) \p
 
 ---
 
-## 9. SLDS的困难：为什么精确EM失效
+## 9. The Difficulty with SLDS: Why Exact EM Fails
 
-### 问题：后验是什么样的？
+### The Problem: What Does the Posterior Look Like?
 
-我们想计算：
+We want to compute:
 $$p(z_{1:T}, x_{1:T} | y_{1:T})$$
 
-### 混合分量爆炸
+### Explosion of Mixture Components
 
-**关键观察**：
+**The key observation**:
 
-由于离散的 $z_{1:T}$，后验是**高斯混合**的混合。
+Because of the discrete $z_{1:T}$, the posterior is a **mixture of Gaussians**.
 
-- 有多少种可能的模式序列？$K^T$
-- 对于每个序列，$p(x_{1:T}|z_{1:T})$ 是高斯
-- **总后验**：$K^T$ 个高斯分布的混合！
+- How many possible mode sequences are there? $K^T$
+- For each sequence, $p(x_{1:T}|z_{1:T})$ is Gaussian
+- **Total posterior**: a mixture of $K^T$ Gaussians!
 
-### 具体数字
+### Concrete Numbers
 
-假设 $T=100$ 时间步，$K=3$ 个模式：
+Suppose $T=100$ time steps and $K=3$ modes:
 
-$$\text{混合分量数} = 3^{100} \approx 5 \times 10^{47}$$
+$$\text{number of mixture components} = 3^{100} \approx 5 \times 10^{47}$$
 
-这是一个**天文数字**。
+This is an **astronomical** number.
 
-计算机无法存储或操作这么多的分量。
+No computer can store or manipulate this many components.
 
-### Naive Message Passing 的失败
+### The Failure of Naive Message Passing
 
-如果尝试前向-后向算法：
+If you try the forward-backward algorithm:
 
 $$\alpha_t(z_t, x_t) = \sum_{z_{t-1}} \int p(x_t, z_t | x_{t-1}, z_{t-1}) p(y_t | x_t, z_t) \alpha_{t-1}(z_{t-1}, x_{t-1}) dx_{t-1}$$
 
-对于每个离散状态 $z_t$，$\alpha_t$ 是一个高斯分布。
+For each discrete state $z_t$, $\alpha_t$ is a Gaussian.
 
-**分量数量随时间指数增长**：
+**The number of components grows exponentially with time**:
 
 ```
-时刻 1: K 个高斯分量
-时刻 2: K × K = K² 个分量
-时刻 3: K × K² = K³ 个分量
+Time 1: K Gaussian components
+Time 2: K × K = K² components
+Time 3: K × K² = K³ components
 ...
-时刻 t: K^t 个分量
+Time t: K^t components
 
-当 t=100, K=3: 3^100 个分量 😱
+At t=100, K=3: 3^100 components 😱
 ```
 
-### 为什么会这样？
+### Why Does This Happen?
 
-每个时刻，我们需要对前一时刻的**所有可能的模式序列**进行条件化。
+At each time step we must condition on **all possible mode sequences** from the previous step.
 
-模式序列数量随时间呈指数增长。
+The number of mode sequences grows exponentially with time.
 
 ---
 
-## 10. 解决方案：变分推断
+## 10. The Solution: Variational Inference
 
-由于精确推断不可行，我们**近似**后验。
+Since exact inference is intractable, we **approximate** the posterior.
 
-### Mean-Field 变分族
+### The Mean-Field Variational Family
 
-约束后验为**独立因子的乘积**：
+Constrain the posterior to be a **product of independent factors**:
 
 $$q(z_{1:T}, x_{1:T}) = q(z_{1:T}) \cdot q(x_{1:T})$$
 
-这个假设说：**在我们的近似中，$z_{1:T}$ 和 $x_{1:T}$ 是独立的**。
+This assumption says: **in our approximation, $z_{1:T}$ and $x_{1:T}$ are independent**.
 
-真实后验中它们是高度相关的，但这个假设使推断可行。
+In the true posterior they are highly correlated, but this assumption makes inference tractable.
 
-### 变分E-step：两个子步骤
+### The Variational E-step: Two Sub-steps
 
-#### 1) 更新 $q(z_{1:T})$
+#### 1) Update $q(z_{1:T})$
 
-给定 $q(x_{1:T})$，最优的 $q(z_{1:T})$ 有**HMM后验的形式**：
+Given $q(x_{1:T})$, the optimal $q(z_{1:T})$ has the **form of an HMM posterior**:
 
 $$q(z_{1:T}) \propto p(z_1) \prod_t p(z_t|z_{t-1}) \exp\left\{\mathbb{E}_{q(x)}[\log p(x_t|x_{t-1}, z_t)]\right\}$$
 
-定义**发射得分**（实际上是对数似然期望）：
+Define the **emission score** (really an expected log likelihood):
 
 $$l_t(z_t) := \mathbb{E}_{q(x)}[\log p(x_t|x_{t-1}, z_t)]$$
 
-那么：
+then:
 $$q(z_{1:T}) \propto p(z_1) \prod_t p(z_t|z_{t-1}) \prod_t e^{l_t(z_t)}$$
 
-**这看起来像一个标准HMM，但发射概率被替换为 $e^{l_t(z_t)}$！**
+**This looks like a standard HMM, but the emission probability is replaced by $e^{l_t(z_t)}$!**
 
-**解法**：
-- 用**前向-后向算法**计算完整的 $q(z_{1:T})$
-- 或用**Viterbi算法**找最可能的模式序列 $z^* = \arg\max_z q(z)$
+**Solution**:
+- Use the **forward-backward algorithm** to compute the full $q(z_{1:T})$
+- Or use the **Viterbi algorithm** to find the most likely mode sequence $z^* = \arg\max_z q(z)$
 
-#### 2) 更新 $q(x_{1:T})$
+#### 2) Update $q(x_{1:T})$
 
-给定 $q(z_{1:T})$，最优的 $q(x_{1:T})$ 有**LDS后验的形式**：
+Given $q(z_{1:T})$, the optimal $q(x_{1:T})$ has the **form of an LDS posterior**:
 
 $$q(x_{1:T}) \propto p(x_1) \prod_t p(x_t | x_{t-1}, z_t^*) p(y_t | x_t)$$
 
-其中我们使用离散状态 $z_t^*$（通常是 $q(z)$ 的最可能值或期望）。
+where we use the discrete state $z_t^*$ (usually the most likely value or expectation under $q(z)$).
 
-这可以写成：
+This can be written as:
 $$q(x_{1:T}) \propto \mathcal{N}(x_1 | m, Q_0) \prod_t \mathcal{N}(x_t | A_{z_t^*}x_{t-1}+b_{z_t^*}, Q_{z_t^*}) \prod_t \mathcal{N}(y_t | Cx_t+d, R)$$
 
-**这是一个LDS问题！**
+**This is an LDS problem!**
 
-**解法**：用 **Kalman平滑器**计算 $q(x_{1:T})$
+**Solution**: use the **Kalman smoother** to compute $q(x_{1:T})$
 
 ---
 
-## 11. 变分EM的完整流程
+## 11. The Complete Variational EM Loop
 
-### 算法
+### Algorithm
 
 ```
-初始化参数 θ⁽⁰⁾
+Initialize parameters θ⁽⁰⁾
 
-迭代 i = 1, 2, 3, ...
-  
-  E-step（变分推断）：
-    重复直到收敛：
-      
-      • 更新 q(z)：
-        - 如果使用mean-field+fully factored z:
-          用Viterbi或前向-后向找最优 q(z)
-        - 计算发射得分 l_t(z_t)
-      
-      • 更新 q(x)：
-        - 给定 q(z) 或 z^*
-        - 用Kalman滤波器和平滑器
-        - 得到 μₜ|ₜ, Σₜ|ₜ
-      
-      • 检查ELBO收敛
-  
-  M-step：
-    • 计算充分统计量（从q(z)和q(x)）
-    • 更新 θ = (A_k, b_k, Q_k, C, d, R, P, π)
-  
-  收敛检查：如果似然或ELBO变化 < ε，停止
+Iterate i = 1, 2, 3, ...
 
-返回最终参数 θ*
+  E-step (variational inference):
+    repeat until convergence:
+
+      • Update q(z):
+        - if using mean-field + fully factored z:
+          use Viterbi or forward-backward to find the optimal q(z)
+        - compute the emission scores l_t(z_t)
+
+      • Update q(x):
+        - given q(z) or z^*
+        - use the Kalman filter and smoother
+        - obtain μₜ|ₜ, Σₜ|ₜ
+
+      • Check ELBO convergence
+
+  M-step:
+    • Compute sufficient statistics (from q(z) and q(x))
+    • Update θ = (A_k, b_k, Q_k, C, d, R, P, π)
+
+  Convergence check: if the likelihood or ELBO change < ε, stop
+
+Return the final parameters θ*
 ```
 
-### 重要性质
+### Important Properties
 
-1. **可计算性**：变分推断现在是可行的！
+1. **Tractability**: variational inference is now feasible!
 
-2. **充分统计量的计算**：
+2. **Computing sufficient statistics**:
 
-需要计算：
+We need to compute:
 $$\mathbb{E}_{q(z,x)}[\mathbb{1}[z_t=k]], \quad \mathbb{E}_{q(z,x)}[\mathbb{1}[z_t=k]x_t], \quad \mathbb{E}_{q(z,x)}[\mathbb{1}[z_t=k]x_t x_{t+1}^T]$$
 
-这些可以从 $q(z)$ 和 $q(x|z)$ 分别计算。
+These can be computed separately from $q(z)$ and $q(x|z)$.
 
-3. **参数更新**有闭形式解（就像LDS）
+3. The **parameter updates** have closed-form solutions (just like the LDS)
 
 ---
 
-## 第13讲小结
+## Lecture 13 Summary
 
-| 方面 | LDS | SLDS(精确) | SLDS(变分) |
+| Aspect | LDS | SLDS (exact) | SLDS (variational) |
 |------|-----|----------|-----------|
-| **隐变量** | $x_t$(连续) | $z_t, x_t$ | $z_t, x_t$ |
-| **后验** | 单个高斯 | $K^t$个高斯 | 两个独立部分 |
-| **推断** | Kalman平滑 | 不可行 | HMM + LDS |
-| **计算复杂度** | $O(d^3 T)$ | $O(K^{2T})$ | $O(K^2 T + d^3 T)$ |
-| **精确性** | 精确 | 精确 | 近似 |
-| **实用性** | ✓ | ✗ | ✓ |
+| **Latent variables** | $x_t$ (continuous) | $z_t, x_t$ | $z_t, x_t$ |
+| **Posterior** | single Gaussian | $K^t$ Gaussians | two independent parts |
+| **Inference** | Kalman smoothing | intractable | HMM + LDS |
+| **Complexity** | $O(d^3 T)$ | $O(K^{2T})$ | $O(K^2 T + d^3 T)$ |
+| **Exactness** | exact | exact | approximate |
+| **Practicality** | ✓ | ✗ | ✓ |
 
 ---
 
-# 第14讲：变分推断
+# Lecture 14: Variational Inference
 
-## 1. 核心问题回顾
+## 1. Recap of the Core Problem
 
-### SLDS 的困境
+### The SLDS Predicament
 
-真实后验 $p(z_{1:T}, x_{1:T} | y_{1:T})$ 无法精确计算，因为有 $K^T$ 个混合分量。
+The true posterior $p(z_{1:T}, x_{1:T} | y_{1:T})$ cannot be computed exactly, because it has $K^T$ mixture components.
 
-### 新的想法
+### A New Idea
 
-与其精确计算，不如找一个**简单的、可计算的分布** $q$ 来近似。
+Rather than computing it exactly, find a **simple, tractable distribution** $q$ to approximate it.
 
-**目标**：找最好的近似
+**Goal**: find the best approximation
 $$q^* = \arg\min_q D_{KL}(q(z,x) \| p(z,x|y))$$
 
 ---
 
-## 2. Kullback-Leibler (KL) 散度
+## 2. Kullback-Leibler (KL) Divergence
 
-### 定义
+### Definition
 
-两个分布 $q$ 和 $p$ 之间的不相似度：
+The dissimilarity between two distributions $q$ and $p$:
 
 $$D_{KL}(q \| p) = \mathbb{E}_q\left[\log\frac{q(x)}{p(x)}\right] = \mathbb{E}_q[\log q(x)] - \mathbb{E}_q[\log p(x)]$$
 
-### 用期望重写
+### Rewritten as Expectations
 
 $$D_{KL}(q \| p) = \sum_x q(x) \log q(x) - \sum_x q(x) \log p(x)$$
 
-第一项：$q$ 的**自信息**或**自熵**  
-第二项：$q$ 在 $p$ 下的**交叉熵**
+First term: the **self-information** (negative entropy) of $q$  
+Second term: the **cross-entropy** of $q$ under $p$
 
-### 关键性质
+### Key Properties
 
-1. **非负性**：$D_{KL}(q \| p) \geq 0$
+1. **Non-negativity**: $D_{KL}(q \| p) \geq 0$
 
-   证明：由 Jensen 不等式
+   Proof: by Jensen's inequality
    $$D_{KL}(q \| p) = \mathbb{E}_q\left[\log\frac{q}{p}\right] \geq \log\mathbb{E}_q\left[\frac{q}{p}\right] = \log 1 = 0$$
 
-2. **等于零当且仅当** $q = p$（在 $q$ 的支撑上）
+2. **Equals zero if and only if** $q = p$ (on the support of $q$)
 
-3. **非对称**：$D_{KL}(q \| p) \neq D_{KL}(p \| q)$
+3. **Asymmetric**: $D_{KL}(q \| p) \neq D_{KL}(p \| q)$
 
-### 直观理解
-
-```
-KL散度衡量："如果我用q来代替p，会丢失多少信息？"
-
-高 D_KL：q和p很不同
-低 D_KL：q接近p
-0 D_KL：q等于p
-```
-
-### 对称方向的重要差异
-
-#### Forward KL：$D_{KL}(q \| p)$
-
-最小化时的特点：
-- 当 $q$ 有支撑而 $p$ 没有时，惩罚重
-- 结果：$q$ 倾向于覆盖 $p$ 的所有模式
-- $q$ 倾向于**很宽**
+### Intuitive Understanding
 
 ```
-p = 混合两个高斯（双峰）
-q = 单个高斯
+KL divergence measures: "If I use q in place of p, how much information do I lose?"
 
-最小化 D_KL(q||p)：
-q会在两个峰之间"平均"
+High D_KL: q and p are very different
+Low  D_KL: q is close to p
+0    D_KL: q equals p
 ```
 
-#### Reverse KL：$D_{KL}(p \| q)$
+### The Important Difference Between the Two Directions
 
-最小化时的特点：
-- 当 $p$ 有支撑而 $q$ 没有时，惩罚重
-- 结果：$q$ 倾向于集中在 $p$ 的某一个模式
-- $q$ 倾向于**很窄**
+#### Forward KL: $D_{KL}(q \| p)$
+
+Characteristics when minimized:
+- Heavily penalized when $q$ has support where $p$ does not
+- Result: $q$ tends to cover all the modes of $p$
+- $q$ tends to be **wide**
 
 ```
-同样的问题：
-最小化 D_KL(p||q)：
-q会选择最可能的峰，忽视其他
+p = a mixture of two Gaussians (bimodal)
+q = a single Gaussian
+
+Minimizing D_KL(q||p):
+q "averages" between the two peaks
 ```
 
-### 在EM中选择
+#### Reverse KL: $D_{KL}(p \| q)$
 
-在变分推断中，我们最小化 **forward KL** $D_{KL}(q \| p)$：
-- 这给了我们一个更"平均"的后验
-- 覆盖真实后验的多个模式
-- 更稳定，但可能不够专注
+Characteristics when minimized:
+- Heavily penalized when $p$ has support where $q$ does not
+- Result: $q$ tends to concentrate on a single mode of $p$
+- $q$ tends to be **narrow**
+
+```
+Same problem:
+Minimizing D_KL(p||q):
+q picks the most likely peak and ignores the others
+```
+
+### The Choice in EM
+
+In variational inference, we minimize the **forward KL** $D_{KL}(q \| p)$:
+- This gives us a more "averaged" posterior
+- It covers multiple modes of the true posterior
+- More stable, but possibly less focused
 
 ---
 
-## 3. 变分推断的核心洞察
+## 3. The Core Insight of Variational Inference
 
-### 问题陈述
+### Problem Statement
 
-**给定**：观测 $y$  
-**求**：后验 $p(z, x | y)$ — **无法计算**
+**Given**: observations $y$  
+**Find**: the posterior $p(z, x | y)$ — **cannot be computed**
 
-**目标**：找一个简单分布 $q(z, x)$ 来近似
+**Goal**: find a simple distribution $q(z, x)$ to approximate it
 
 $$q^* = \arg\min_q D_{KL}(q(z,x) \| p(z, x|y))$$
 
-### 关键数学技巧
+### The Key Mathematical Trick
 
-写出KL散度：
+Write out the KL divergence:
 
 $$D_{KL}(q \| p(\cdot|y)) = \mathbb{E}_q[\log q] - \mathbb{E}_q[\log p(z,x|y)]$$
 
-用贝叶斯规则 $p(z,x|y) = \frac{p(z,x,y)}{p(y)}$：
+Using Bayes' rule $p(z,x|y) = \frac{p(z,x,y)}{p(y)}$:
 
 $$= \mathbb{E}_q[\log q] - \mathbb{E}_q[\log p(z,x,y)] + \mathbb{E}_q[\log p(y)]$$
 
 $$= \mathbb{E}_q[\log q] - \mathbb{E}_q[\log p(z,x,y)] + \log p(y)$$
 
-（因为 $p(y)$ 对 $q$ 是常数）
+(since $p(y)$ is constant with respect to $q$)
 
-重新整理：
+Rearranging:
 
 $$\log p(y) = \underbrace{\mathbb{E}_q[\log p(z,x,y) - \log q(z,x)]}_{\text{ELBO}} + D_{KL}(q \| p)$$
 
 ---
 
-## 4. ELBO：证据下界
+## 4. The ELBO: Evidence Lower Bound
 
-### 定义
+### Definition
 
 $$\text{ELBO}(q) := \mathbb{E}_q[\log p(z,x,y)] - \mathbb{E}_q[\log q(z,x)]$$
 
-也可以写成：
+can also be written as:
 
 $$\text{ELBO}(q) = \mathbb{E}_q[\log \frac{p(z,x,y)}{q(z,x)}]$$
 
-### 关键关系
+### The Key Relationship
 
 $$\log p(y) = \text{ELBO}(q) + D_{KL}(q \| p)$$
 
-### 为什么叫"下界"？
+### Why Is It Called a "Lower Bound"?
 
-由于 $D_{KL}(q \| p) \geq 0$，我们有：
+Since $D_{KL}(q \| p) \geq 0$, we have:
 
 $$\text{ELBO}(q) \leq \log p(y)$$
 
-**ELBO是对数似然的下界！**
+**The ELBO is a lower bound on the log likelihood!**
 
-### 关键推论
+### The Key Corollary
 
-最小化 $D_{KL}(q \| p)$ 等价于最大化 $\text{ELBO}(q)$：
+Minimizing $D_{KL}(q \| p)$ is equivalent to maximizing $\text{ELBO}(q)$:
 
 $$\min_q D_{KL}(q \| p) \Leftrightarrow \max_q \text{ELBO}(q)$$
 
-因为 $\log p(y)$ 是常数。
+because $\log p(y)$ is constant.
 
-### 直观图示
+### Intuitive Illustration
 
 ```
-对数似然 log p(y)
+log likelihood log p(y)
 │
 │  ∣
 │  ├─ D_KL(q||p) ≥ 0
 │  │
 │  ▼
-│  ELBO(q) ─────── 我们能计算的下界
+│  ELBO(q) ─────── the lower bound we can compute
 │
-└─────────────────→ q的选择
+└─────────────────→ choice of q
 
-当 q = p 时：
-  ELBO(q) = log p(y)（最大化）
+When q = p:
+  ELBO(q) = log p(y) (maximized)
   D_KL = 0
 
-当 q ≠ p 时：
-  ELBO(q) < log p(y)（下界）
-  D_KL > 0（间隙）
+When q ≠ p:
+  ELBO(q) < log p(y) (a lower bound)
+  D_KL > 0 (the gap)
 ```
 
 ---
 
-## 5. Mean-Field 变分族
+## 5. The Mean-Field Variational Family
 
-### 问题
+### The Problem
 
-如果让 $q$ 任意复杂，优化会非常困难。
+If we let $q$ be arbitrarily complex, optimization becomes very hard.
 
-### 解决方案
+### The Solution
 
-**约束** $q$ 属于一个**变分族** $\mathcal{Q}$，这是一类简单的分布。
+**Constrain** $q$ to belong to a **variational family** $\mathcal{Q}$, a class of simple distributions.
 
-### Mean-Field 假设
+### The Mean-Field Assumption
 
-假设所有变量**相互独立**：
+Assume all variables are **mutually independent**:
 
 $$q(z, x) = q(z) \cdot q(x)$$
 
-或更一般地（$n$ 个变量）：
+or more generally ($n$ variables):
 
 $$q(z_1, \ldots, z_n) = \prod_{i=1}^n q_i(z_i)$$
 
-### 变分族
+### The Variational Family
 
 $$\mathcal{Q}_{MF} = \left\{q : q(z,x) = q(z) \cdot q(x)\right\}$$
 
-### 为什么选Mean-Field？
+### Why Mean-Field?
 
-1. **易于优化**：每个因子可以独立更新
-2. **易于计算**：期望分解为乘积
-3. **在实践中有效**：通常给出合理的近似
-4. **有良好的理论性质**：可以证明收敛性
+1. **Easy to optimize**: each factor can be updated independently
+2. **Easy to compute**: expectations factor into products
+3. **Effective in practice**: usually gives a reasonable approximation
+4. **Good theoretical properties**: convergence can be proven
 
-### 代价：忽视相关性
+### The Cost: Ignoring Correlations
 
-Mean-Field假设忽视了变量之间的**相关性**。
+The mean-field assumption ignores the **correlations** between variables.
 
-**真实后验中**：$z_t$ 和 $x_t$ 高度相关
-- 如果在"走路模式"，$x_t$ 会有特定模式
-- 如果位置快速变化，更可能在"走路模式"
+**In the true posterior**: $z_t$ and $x_t$ are highly correlated
+- If in "walking mode," $x_t$ has a particular pattern
+- If the position changes quickly, "walking mode" is more likely
 
-**Mean-Field假设**：$z_t$ 和 $x_t$ 独立
-- 这在数学上不正确
-- 但使推断可行
-- 在实践中误差通常可以接受
+**Under the mean-field assumption**: $z_t$ and $x_t$ are independent
+- This is mathematically incorrect
+- But it makes inference tractable
+- In practice the error is usually acceptable
 
 ---
 
-## 6. 坐标上升变分推断（CAVI）
+## 6. Coordinate Ascent Variational Inference (CAVI)
 
-### 问题
+### The Problem
 
-现在我们有变分族 $q(z) q(x)$。
+We now have the variational family $q(z) q(x)$.
 
-如何**最大化ELBO**？
+How do we **maximize the ELBO**?
 
-### 答案：坐标上升
+### The Answer: Coordinate Ascent
 
-轮流优化每个因子。
+Optimize each factor in turn.
 
-### 算法
+### Algorithm
 
 ```
-初始化 q(z), q(x)
+Initialize q(z), q(x)
 
 repeat:
-  1. 固定 q(x)，优化 q(z)
-  2. 固定 q(z)，优化 q(x)
-  3. 检查收敛
-  
-until ELBO 变化 < ε
+  1. Fix q(x), optimize q(z)
+  2. Fix q(z), optimize q(x)
+  3. Check convergence
+
+until the ELBO change < ε
 ```
 
-### 关键：每一步的最优解
+### The Key: The Optimal Solution at Each Step
 
-#### 第1步：固定 $q(x)$，最优化 $q(z)$
+#### Step 1: Fix $q(x)$, optimize $q(z)$
 
-ELBO：
+The ELBO:
 $$\text{ELBO} = \mathbb{E}_{q(z), q(x)}[\log p(z,x,y)] - \mathbb{E}_{q(z)}[\log q(z)] - \mathbb{E}_{q(x)}[\log q(x)]$$
 
-对于 $q(z)$ 的优化，第三项（与 $q(x)$ 相关）是常数：
+For optimizing $q(z)$, the third term (which depends on $q(x)$) is constant:
 
 $$\max_{q(z)} \text{ELBO} = \max_{q(z)} \left\{\mathbb{E}_{q(z), q(x)}[\log p(z,x,y)] - \mathbb{E}_{q(z)}[\log q(z)]\right\}$$
 
 $$= \max_{q(z)} \mathbb{E}_{q(z)}\left\{\mathbb{E}_{q(x)}[\log p(z,x,y)] - \log q(z)\right\}$$
 
-这是最小化 $D_{KL}(q(z) \| \tilde{p}(z))$ 的问题，其中：
+This is the problem of minimizing $D_{KL}(q(z) \| \tilde{p}(z))$, where:
 
 $$\tilde{p}(z) \propto \exp\{\mathbb{E}_{q(x)}[\log p(z,x,y)]\}$$
 
-**最优解**：
+**Optimal solution**:
 $$q^*(z) \propto \exp\{\mathbb{E}_{q(x)}[\log p(z,x,y)]\}$$
 
-#### 第2步：固定 $q(z)$，最优化 $q(x)$
+#### Step 2: Fix $q(z)$, optimize $q(x)$
 
-类似地：
+Similarly:
 
 $$q^*(x) \propto \exp\{\mathbb{E}_{q(z)}[\log p(z,x,y)]\}$$
 
-### 一般形式（对任意变量）
+### General Form (For an Arbitrary Variable)
 
-对于任何变量 $z_i$：
+For any variable $z_i$:
 
 $$q_i^*(z_i) \propto \exp\left\{\mathbb{E}_{q(\text{other variables})}[\log p(\text{all variables})]\right\}$$
 
-期望是对所有其他变量取的，对数是完整联合分布的对数。
+The expectation is over all the other variables, and the log is of the full joint distribution.
 
-### 收敛性
+### Convergence
 
-**定理**：CAVI 保证 ELBO 单调递增，收敛到**局部最大值**。
+**Theorem**: CAVI guarantees the ELBO increases monotonically, converging to a **local maximum**.
 
-证明思路：
-1. 固定 $q(x)$ 优化 $q(z)$ 严格增加ELBO
-2. 固定 $q(z)$ 优化 $q(x)$ 严格增加ELBO
-3. 迭代至少保持不变，有界，所以收敛
+Proof sketch:
+1. Fixing $q(x)$ and optimizing $q(z)$ strictly increases the ELBO
+2. Fixing $q(z)$ and optimizing $q(x)$ strictly increases the ELBO
+3. The iteration at least stays constant, is bounded, and therefore converges
 
 ---
 
-## 7. 应用到 SLDS
+## 7. Application to SLDS
 
-### 模型回顾
+### Model Recap
 
 $$p(z_{1:T}, x_{1:T}, y_{1:T}) = p(z_1) \prod_t p(z_t|z_{t-1}) \prod_t p(x_t|x_{t-1}, z_t) \prod_t p(y_t|x_t)$$
 
-### Mean-Field 变分族
+### The Mean-Field Variational Family
 
 $$\mathcal{Q} = \left\{q : q(z_{1:T}, x_{1:T}) = q(z_{1:T}) \cdot q(x_{1:T})\right\}$$
 
-### E-step 第1部分：更新 $q(z_{1:T})$
+### E-step Part 1: Update $q(z_{1:T})$
 
-应用CAVI：
+Applying CAVI:
 
 $$q^*(z_{1:T}) \propto \exp\{\mathbb{E}_{q(x)}[\log p(z_{1:T}, x_{1:T}, y_{1:T})]\}$$
 
-展开：
+Expanding:
 
 $$= \exp\left\{\mathbb{E}_{q(x)}\left[\log p(z_1) + \sum_t \log p(z_t|z_{t-1}) + \sum_t \log p(x_t|x_{t-1}, z_t) + \sum_t \log p(y_t|x_t)\right]\right\}$$
 
-前两项不含 $q(x)$：
+The first two terms do not involve $q(x)$:
 
 $$\propto \exp\left\{\log p(z_1) + \sum_t \log p(z_t|z_{t-1}) + \sum_t \mathbb{E}_{q(x)}[\log p(x_t|x_{t-1}, z_t)]\right\}$$
 
-定义：
+Define:
 $$l_t(z_t) := \mathbb{E}_{q(x)}[\log p(x_t|x_{t-1}, z_t)]$$
 
-则：
+then:
 $$q^*(z_{1:T}) \propto p(z_1) \prod_t p(z_t|z_{t-1}) \prod_t \exp\{l_t(z_t)\}$$
 
-**这就是一个HMM的后验！**
+**This is an HMM posterior!**
 
-#### 解法
+#### Solution
 
-- 用**前向-后向算法**得到完整的分布 $q(z_{1:T})$
-- 或用**Viterbi算法**找最可能的序列 $z^* = \arg\max_z q(z)$
+- Use the **forward-backward algorithm** to obtain the full distribution $q(z_{1:T})$
+- Or use the **Viterbi algorithm** to find the most likely sequence $z^* = \arg\max_z q(z)$
 
-### E-step 第2部分：更新 $q(x_{1:T})$
+### E-step Part 2: Update $q(x_{1:T})$
 
-应用CAVI：
+Applying CAVI:
 
 $$q^*(x_{1:T}) \propto \exp\{\mathbb{E}_{q(z)}[\log p(z_{1:T}, x_{1:T}, y_{1:T})]\}$$
 
 $$\propto \exp\left\{\mathbb{E}_{q(z)}\left[\sum_t \log p(x_t|x_{t-1}, z_t) + \sum_t \log p(y_t|x_t)\right]\right\}$$
 
-（其他项不含 $x$）
+(the other terms do not involve $x$)
 
-对于线性高斯模型，这简化为：
+For a linear-Gaussian model, this simplifies to:
 
 $$q^*(x_{1:T}) \propto p(x_1) \prod_t \mathcal{N}(x_t | A_{z_t^*}x_{t-1}+b_{z_t^*}, Q_{z_t^*}) \prod_t \mathcal{N}(y_t | Cx_t+d, R)$$
 
-其中 $z_t^*$ 来自 $q(z)$。
+where $z_t^*$ comes from $q(z)$.
 
-**这就是一个LDS的后验！**
+**This is an LDS posterior!**
 
-#### 解法
+#### Solution
 
-用 **Kalman 平滑器**计算所有边际 $q(x_t)$。
-
----
-
-## 8. 变分EM vs 精确EM
-
-### 精确EM（理想情况，如果可能）
-
-$$q(z,x) = p(z,x|y; \theta)$$（精确）
-
-- **ELBO**：等于 $\log p(y; \theta)$（达到最大）
-- **E-step**：精确推断（$K^T$ 个分量，**不可行**）
-- **收敛**：到似然的局部最大值
-- **精确性**：100%精确
-
-### 变分EM
-
-$$q(z,x) = q(z) q(x)$$（mean-field近似）
-
-- **ELBO**：$\leq \log p(y; \theta)$（下界）
-- **E-step**：CAVI（HMM + LDS，**可行**）
-- **收敛**：到变分下界的局部最大值
-- **精确性**：近似（误差来自mean-field假设）
-
-### 好消息
-
-虽然ELBO是下界，但它是**一个有效的目标函数**。
-
-最大化它仍然使模型更好地拟合数据。
-
-### 权衡总结
-
-```
-精确EM          变分EM
-───────         ──────
-精确：✓          精确：✗（mean-field误差）
-可计算：✗        可计算：✓
-
-精确比近似好，但如果精确无法计算，
-那么近似比没有要好！
-```
+Use the **Kalman smoother** to compute all marginals $q(x_t)$.
 
 ---
 
-## 9. ELBO的另一种解释
+## 8. Variational EM vs. Exact EM
 
-### ELBO的两部分
+### Exact EM (the ideal case, if possible)
+
+$$q(z,x) = p(z,x|y; \theta) \quad \text{(exact)}$$
+
+- **ELBO**: equals $\log p(y; \theta)$ (attains the maximum)
+- **E-step**: exact inference ($K^T$ components, **intractable**)
+- **Convergence**: to a local maximum of the likelihood
+- **Exactness**: 100% exact
+
+### Variational EM
+
+$$q(z,x) = q(z) q(x) \quad \text{(mean-field approximation)}$$
+
+- **ELBO**: $\leq \log p(y; \theta)$ (a lower bound)
+- **E-step**: CAVI (HMM + LDS, **tractable**)
+- **Convergence**: to a local maximum of the variational lower bound
+- **Exactness**: approximate (error from the mean-field assumption)
+
+### The Good News
+
+Although the ELBO is a lower bound, it is **a valid objective function**.
+
+Maximizing it still makes the model fit the data better.
+
+### Trade-off Summary
+
+```
+Exact EM         Variational EM
+───────          ──────
+Exact: ✓          Exact: ✗ (mean-field error)
+Tractable: ✗      Tractable: ✓
+
+Exact is better than approximate, but if the exact
+version is uncomputable, then approximate beats nothing!
+```
+
+---
+
+## 9. Another Interpretation of the ELBO
+
+### The Two Parts of the ELBO
 
 $$\text{ELBO}(q) = \mathbb{E}_q[\log p(z,x,y)] - \mathbb{E}_q[\log q(z,x)]$$
 
-$$= \underbrace{\mathbb{E}_q[\log p(y,z,x)]}_{\text{联合似然}} + \underbrace{\text{Entropy}(q)}_{\text{q的熵}}$$
+$$= \underbrace{\mathbb{E}_q[\log p(y,z,x)]}_{\text{joint likelihood}} + \underbrace{\text{Entropy}(q)}_{\text{entropy of q}}$$
 
-### 第一部分：$\mathbb{E}_q[\log p(y,z,x)]$
+### Part One: $\mathbb{E}_q[\log p(y,z,x)]$
 
-这是数据和隐变量的**联合对数似然**。
+This is the **joint log likelihood** of the data and the latent variables.
 
-最大化它意味着：
-- 找参数使观测概率高
-- 找隐变量解释使联合概率高
+Maximizing it means:
+- Find parameters that make the observations probable
+- Find latent-variable explanations that make the joint probable
 
-### 第二部分：$\text{Entropy}(q) = -\mathbb{E}_q[\log q(z,x)]$
+### Part Two: $\text{Entropy}(q) = -\mathbb{E}_q[\log q(z,x)]$
 
-这是后验 $q$ 的**熵**。
+This is the **entropy** of the posterior $q$.
 
-最大化它意味着：
-- 让 $q$ 尽可能"平坦"或"宽"
-- 避免过度自信的后验估计
+Maximizing it means:
+- Keep $q$ as "flat" or "wide" as possible
+- Avoid overconfident posterior estimates
 
-### 组合效应
+### The Combined Effect
 
-这两个目标之间的权衡：
+A trade-off between these two objectives:
 
-1. **最小化重构误差**：用 $z, x$ 尽可能好地解释 $y$
-2. **最小化编码成本**：用尽可能少的比特编码 $z, x$
+1. **Minimize reconstruction error**: explain $y$ as well as possible using $z, x$
+2. **Minimize coding cost**: encode $z, x$ with as few bits as possible
 
-这类似于**信息论**中的**最小描述长度（MDL）原则**：
+This is analogous to the **Minimum Description Length (MDL)** principle from **information theory**:
 
-$$\text{总成本} = \text{数据成本} + \text{模型成本}$$
+$$\text{total cost} = \text{data cost} + \text{model cost}$$
 
 ---
 
-## 10. 直观例子：Gaussian Mixture 的变分推断
+## 10. A Concrete Example: Variational Inference for a Gaussian Mixture
 
-让我们用一个简单的例子来看CAVI的作用。
+Let's use a simple example to see CAVI in action.
 
-### 简单模型
+### A Simple Model
 
-**模型**：
+**Model**:
 $$z \in \{1, 2\}, \quad y | z \sim \mathcal{N}(\mu_z, 1)$$
 
-**参数**：$\pi_1 = \pi_2 = 0.5$，$\mu_1 = -1$，$\mu_2 = 1$
+**Parameters**: $\pi_1 = \pi_2 = 0.5$, $\mu_1 = -1$, $\mu_2 = 1$
 
-**观测**：$y = 0.5$
+**Observation**: $y = 0.5$
 
-### 真实后验
+### The True Posterior
 
-使用贝叶斯规则：
+Using Bayes' rule:
 
 $$p(z=1|y) \propto \pi_1 \mathcal{N}(0.5|-1,1) = 0.5 \times 0.242$$
 
 $$p(z=2|y) \propto \pi_2 \mathcal{N}(0.5|1,1) = 0.5 \times 0.352$$
 
-归一化：
+Normalizing:
 $$p(z=1|y) \approx 0.408, \quad p(z=2|y) \approx 0.592$$
 
-（第二个类别更可能，因为观测离 $\mu_2=1$ 更近）
+(the second class is more likely, because the observation is closer to $\mu_2=1$)
 
-### Mean-Field 变分近似
+### The Mean-Field Variational Approximation
 
-变分族：
+The variational family:
 $$q(z) = \text{Bernoulli}(\phi) = \{\phi: p(z=1)=\phi, p(z=2)=1-\phi\}$$
 
-### CAVI 更新
+### The CAVI Update
 
 $$q^*(z) \propto \exp\{\mathbb{E}[\log p(z, y)]\}$$
 
 $$\propto \exp\{\log\pi_z + \log\mathcal{N}(y|\mu_z, 1)\}$$
 
-这简化为：
+This simplifies to:
 $$q^*(z=1) \propto \exp\{\log 0.5 + \log\mathcal{N}(0.5|-1,1)\}$$
 
 $$\propto 0.5 \times 0.242 = 0.121$$
 
-类似地：
+Similarly:
 $$q^*(z=2) \propto 0.5 \times 0.352 = 0.176$$
 
-归一化：
+Normalizing:
 $$q^*(z=1) \approx 0.407, \quad q^*(z=2) \approx 0.593$$
 
-### 结果
+### The Result
 
-**CAVI得到的 $q(z)$ 非常接近真实后验！**
+**The $q(z)$ from CAVI is very close to the true posterior!**
 
-（在这个简单例子中，它几乎是精确的）
-
----
-
-## 11. 为什么Mean-Field可能不完美
-
-### 一个对比例子
-
-假设真实后验是这样的：
-
-**真实联合后验**中，$z$ 和 $x$ 高度相关：
-- 如果 $z=1$，则 $x$ 更可能 $\approx 0$
-- 如果 $z=2$，则 $x$ 更可能 $\approx 5$
-
-### 可视化对比
-
-```
-真实后验：             Mean-Field近似：
-   x                      x
-   │                      │
- 5 │    ● cluster 2      5│    ╱╲ 平均分布
-   │                      │   ╱  ╲
- 2.5│╱╲                   2.5├─────┤ 宽的分布
-   │╱  ╲                  │╱    ╲
- 0 │╱    ●cluster 1     0 │────────
-   │     ╱               │
-   └──────── z           └──────── z
-    1   2                 1   2
-
-真实：两个分离的簇    近似："平均"它们，更宽
-```
-
-### Mean-Field的代价
-
-1. **$q(x)$ 比真实后验更宽**
-   - 它在两个模式之间"平均"
-   - 不那么确定任何单一解释
-
-2. **充分统计量可能不太准确**
-   - $\mathbb{E}_q[x]$ 可能不代表任何真实的模式
-   - 但通常仍然足够好，使参数更新有效
-
-3. **但推断仍然可行**
-   - 我们得到了可计算的近似
-   - 参数仍会改进
-   - 实践中效果通常不错
+(In this simple example, it is almost exact.)
 
 ---
 
-## 12. CAVI 的一般算法形式
+## 11. Why Mean-Field Can Be Imperfect
 
-### 对于任意变量集合
+### A Contrasting Example
 
-假设我们想推断 $z_1, \ldots, z_m$，mean-field假设：
+Suppose the true posterior looks like this:
+
+**In the true joint posterior**, $z$ and $x$ are highly correlated:
+- If $z=1$, then $x$ is more likely $\approx 0$
+- If $z=2$, then $x$ is more likely $\approx 5$
+
+### Visual Comparison
+
+```
+True posterior:          Mean-field approximation:
+   x                        x
+   │                        │
+ 5 │    ● cluster 2       5 │    ╱╲ averaged distribution
+   │                        │   ╱  ╲
+ 2.5│╱╲                    2.5├─────┤ wide distribution
+   │╱  ╲                     │╱    ╲
+ 0 │╱    ● cluster 1       0 │────────
+   │     ╱                   │
+   └──────── z               └──────── z
+    1   2                     1   2
+
+True: two separated clusters   Approx: "averages" them, wider
+```
+
+### The Cost of Mean-Field
+
+1. **$q(x)$ is wider than the true posterior**
+   - It "averages" between the two modes
+   - Less certain about any single explanation
+
+2. **The sufficient statistics may be less accurate**
+   - $\mathbb{E}_q[x]$ may not represent any true mode
+   - But usually still good enough to make the parameter updates work
+
+3. **But inference remains tractable**
+   - We obtain a computable approximation
+   - The parameters still improve
+   - It usually works well in practice
+
+---
+
+## 12. The General Form of the CAVI Algorithm
+
+### For an Arbitrary Set of Variables
+
+Suppose we want to infer $z_1, \ldots, z_m$ with the mean-field assumption:
 $$q(z_1, \ldots, z_m) = \prod_{i=1}^m q_i(z_i)$$
 
-### 通用CAVI
+### General CAVI
 
 ```
 for i = 1 to m:
   for iteration = 1 to max_iter:
-    
-    对每个因子 i：
-      q_i(z_i) ∝ exp{E_{q(\text{others})}[log p(all)]}
-    
-    计算ELBO
-    if ELBO收敛，break
+
+    for each factor i:
+      q_i(z_i) ∝ exp{E_{q(others)}[log p(all)]}
+
+    compute the ELBO
+    if the ELBO has converged, break
 ```
 
-### 实现要点
+### Implementation Notes
 
-1. **顺序更新**：一次一个因子
+1. **Sequential updates**: one factor at a time
 
-2. **期望计算**：需要计算关于其他因子的期望
-   - 对高斯分布：简单
-   - 对离散分布：求和
-   - 对复杂模型：可能需要数值方法
+2. **Computing expectations**: requires expectations over the other factors
+   - For Gaussians: easy
+   - For discrete distributions: a sum
+   - For complex models: may need numerical methods
 
-3. **收敛判断**：监控ELBO或参数变化
+3. **Convergence criterion**: monitor the ELBO or the parameter changes
 
 ---
 
-## 13. 总结：变分推断的全景
+## 13. Summary: The Big Picture of Variational Inference
 
-### 核心思想
+### Core Idea
 
 ```
-问题：
-  后验 p(z,x|y) 无法计算（太复杂）
+Problem:
+  the posterior p(z,x|y) cannot be computed (too complex)
 
-解决方案：
-  找一个简单分布 q 来近似它
+Solution:
+  find a simple distribution q to approximate it
 
-数学框架：
-  最小化 KL 散度 ↔ 最大化 ELBO
+Mathematical framework:
+  minimize the KL divergence ↔ maximize the ELBO
 
-实用算法：
-  CAVI（坐标上升）
+Practical algorithm:
+  CAVI (coordinate ascent)
     ↓
-  轮流更新每个因子
+  update each factor in turn
     ↓
-  在SLDS中：更新 q(z)（HMM） + 更新 q(x)（LDS）
+  in SLDS: update q(z) (HMM) + update q(x) (LDS)
     ↓
-  两个可计算的推断问题！
+  two tractable inference problems!
 
-权衡：
-  精确性   ────→  ✗（mean-field误差）
-  可计算性 ────→  ✓（可在合理时间内完成）
-  实用性   ────→  ✓（实践中表现很好）
+Trade-off:
+  Exactness    ────→  ✗ (mean-field error)
+  Tractability ────→  ✓ (feasible in reasonable time)
+  Practicality ────→  ✓ (works well in practice)
 ```
 
 ---
 
-## 14. 关键要点回顾
+## 14. Recap of Key Points
 
-| 概念 | 定义 | 直观理解 |
+| Concept | Definition | Intuition |
 |------|------|--------|
-| **KL散度** | $D_{KL}(q \mid\mid p)$ | 两个分布的不相似度；非对称 |
-| **ELBO** | $E_q[\log p(y,z,x)] - E_q[\log q(z,x)]$ | 对数似然的下界；最大化ELBO就能最小化KL |
-| **Mean-Field** | $q(z,x) = q(z)q(x)$ | 独立因子假设；使推断可行但忽视相关性 |
-| **CAVI** | 坐标上升变分推断 | 轮流优化每个因子；保证单调收敛 |
-| **在SLDS中** | HMM推断 + LDS推断 | 把复杂问题分解成两个可解的子问题 |
+| **KL divergence** | $D_{KL}(q \mid\mid p)$ | dissimilarity between two distributions; asymmetric |
+| **ELBO** | $E_q[\log p(y,z,x)] - E_q[\log q(z,x)]$ | lower bound on the log likelihood; maximizing the ELBO minimizes the KL |
+| **Mean-Field** | $q(z,x) = q(z)q(x)$ | independent-factor assumption; makes inference tractable but ignores correlations |
+| **CAVI** | Coordinate Ascent Variational Inference | optimize each factor in turn; guarantees monotone convergence |
+| **In SLDS** | HMM inference + LDS inference | decompose a hard problem into two solvable sub-problems |
 
 ---
 
-## 15. 从第12到第14讲的完整故事
+## 15. The Complete Story from Lecture 12 to Lecture 14
 
-### 学习路线
+### Learning Path
 
 ```
-第12讲：EM基础
-  ├─ 软分配（GMM）
-  ├─ 时间结构（HMM）
-  └─ 前向-后向算法
+Lecture 12: EM foundations
+  ├─ soft assignment (GMM)
+  ├─ temporal structure (HMM)
+  └─ forward-backward algorithm
 
-       ↓ 升级到连续隐变量
+       ↓ upgrade to continuous latents
 
-第13讲：LDS和SLDS
-  ├─ Kalman滤波器/平滑器（精确，LDS）
-  ├─ 混合模式（SLDS）
-  ├─ 问题：后验有K^T个分量
-  └─ 需要新方法...
+Lecture 13: LDS and SLDS
+  ├─ Kalman filter/smoother (exact, LDS)
+  ├─ switching modes (SLDS)
+  ├─ problem: the posterior has K^T components
+  └─ need a new method...
 
-       ↓ 引入变分推断
+       ↓ introduce variational inference
 
-第14讲：变分推断
-  ├─ KL散度和ELBO
-  ├─ Mean-Field假设（解耦z和x）
-  ├─ CAVI算法
-  └─ 应用：SLDS变分EM
-     ├─ 更新q(z)：HMM问题
-     └─ 更新q(x)：LDS问题
-       
-结果：完整可行的算法！
+Lecture 14: variational inference
+  ├─ KL divergence and the ELBO
+  ├─ mean-field assumption (decouple z and x)
+  ├─ CAVI algorithm
+  └─ application: variational EM for SLDS
+     ├─ update q(z): an HMM problem
+     └─ update q(x): an LDS problem
+
+Result: a complete, tractable algorithm!
 ```
 
 ---
 
-## 16. 为什么这很重要：神经数据应用
+## 16. Why This Matters: Applications to Neural Data
 
-### 现实中的神经数据
+### Neural Data in the Real World
 
-在分析神经活动时，我们经常遇到：
+When analyzing neural activity, we often encounter:
 
-1. **复杂的动力学**
-   - 神经回路不是单一线性系统
-   - 不同的行为（走路、嗅探、进食）有不同的动力学
-   - 需要SLDS来模型化
+1. **Complex dynamics**
+   - Neural circuits are not a single linear system
+   - Different behaviors (walking, sniffing, feeding) have different dynamics
+   - We need SLDS to model them
 
-2. **不完整的观测**
-   - 只能记录几百个神经元
-   - 但可能有数千个
-   - 隐变量代表完整的神经状态
+2. **Incomplete observations**
+   - We can only record a few hundred neurons
+   - But there may be thousands
+   - The latent variables represent the full neural state
 
-3. **推断问题**
-   - 从观测恢复完整的神经活动
-   - 理解系统在做什么
+3. **The inference problem**
+   - Recover the full neural activity from the observations
+   - Understand what the system is doing
 
-### 变分EM的角色
+### The Role of Variational EM
 
-**变分EM让以上成为可能**：
+**Variational EM makes all of the above possible**:
 
-1. 用SLDS模型复杂的神经动力学
-2. 用变分推断处理棘手的推断问题
-3. 用EM从数据学习参数
+1. Use SLDS to model complex neural dynamics
+2. Use variational inference to handle the intractable inference problem
+3. Use EM to learn parameters from data
 
-### 实际效果
+### The Practical Payoff
 
 ```
-观测数据              变分EM
-（部分神经元）  ────────→  参数和隐状态估计
+Observed data            Variational EM
+(some neurons)  ────────→  parameter and latent-state estimates
                           ↓
-                    理解神经回路
-                    检测行为模式
-                    预测未来活动
+                    understand the neural circuit
+                    detect behavioral modes
+                    predict future activity
 ```
 
 ---
 
-**现在你完全理解了从EM到变分推断的完整发展路径！** 🎓
+**You now fully understand the complete path from EM to variational inference!** 🎓
 
-这个框架是现代神经数据分析的基础。
+This framework is the foundation of modern neural data analysis.
