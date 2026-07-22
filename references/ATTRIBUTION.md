@@ -123,5 +123,5 @@ When using this library in your work, please cite both the original Stanford cou
 
 ---
 
-**Last Updated**: 2026-07-15  
-**Maintained By**: [Your name/organization]
+**Last Updated**: 2026-07-22  
+**Maintained By**: Chunyu Qu
